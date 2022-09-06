@@ -1,0 +1,99 @@
+<template>
+	<div class="IntendPrint_wapper">
+		<div class="IntendPrint_header" style="display: flex;">
+			<vxe-button @click="print(0)">打印</vxe-button>
+			<vxe-button @click="print(1)">预览</vxe-button>
+		</div>
+		<div class="IntendPrint_main" id="print" style="padding: 0 20px;">
+			<slot></slot>
+		</div>
+	</div>
+</template>
+<script>
+import { getLodop } from '@/components/js/LodopFuncs.js'
+export default {
+	props: {
+		SelectShow: {
+			type: Boolean
+		},
+		printCallback: {
+			type: Function,
+			default: null
+		}
+	},
+	data() {
+		return {
+
+		};
+	},
+	mounted() {
+	},
+	methods: {
+		print(s) {
+			if (this.printCallback) {
+				this.printCallback(s);
+			} else {
+				try {
+					this.CreateOneFormPage();
+					if (s == 0) {
+						LODOP.PRINT();
+						this.$message.success("打印成功")
+						this.$emit('update:SelectShow', false)
+					}
+					if (s == 1) {
+						LODOP.PREVIEW();
+					}
+				} catch (err) {
+					this.$message.error(err)
+				}
+
+			}
+		},
+		CreateOneFormPage() {
+			this.refreshData();
+			LODOP = getLodop();
+			LODOP.SET_PRINT_PAGESIZE(2, 0, 0, "A4");
+			LODOP.ADD_PRINT_HTM(0, 0, "100%", "100%", document.getElementById("print").innerHTML);
+		},
+		refreshData() { //让innerHTML获取的内容包含input和select(option)的最新值
+			var allInputObject = document.body.getElementsByTagName("input");
+			for (let i = 0; i < allInputObject.length; i++) {
+				if (allInputObject[i].type == "checkbox") {
+					if (allInputObject[i].checked)
+						allInputObject[i].setAttribute("checked", "checked");
+					else
+						allInputObject[i].removeAttribute("checked");
+				} else if (allInputObject[i].type == "radio") {
+					if (allInputObject[i].checked)
+						allInputObject[i].setAttribute("checked", "checked");
+					else
+						allInputObject[i].removeAttribute("checked");
+				} else allInputObject[i].setAttribute("value", allInputObject[i].value);
+			};
+			for (let i = 0; i < document.getElementsByTagName("select").length; i++) {
+				var sl = document.getElementsByTagName("select")[i];
+				for (let j = 0; j < sl.options.length; j++) {
+					if (sl.options[j].selected)
+						sl.options[j].setAttribute("selected", "selected");
+					else sl.options[j] = new Option(sl.options[j].text, sl.options[j].value);
+				};
+			};
+		},
+	},
+}
+</script>
+<style scoped="scoped" lang="less">
+.load {
+	line-height: 175px
+}
+
+.el-progress {
+	margin-left: calc(50% - 63px);
+	margin-top: 45px;
+}
+
+/deep/.el-dialog__body {
+	padding: 0px 10px 10px 10px;
+}
+</style>
+

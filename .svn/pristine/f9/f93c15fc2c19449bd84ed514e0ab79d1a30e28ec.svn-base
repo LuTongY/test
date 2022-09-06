@@ -1,0 +1,221 @@
+<template>
+  <div v-dialogdrag>
+    <el-dialog :title="(is_edit ? '修改':'添加')+'应聘者信息'" v-model="is_show" width="530px">
+      <el-form
+        :model="saveForm"
+        :rules="rules"
+        ref="saveForm"
+        label-width="130px"
+      >
+        <el-scrollbar height="500px" style="padding-right:20px">
+          <el-form-item label="应聘者姓名" prop="name"><el-input v-model.trim="saveForm.name" maxlength="20"></el-input></el-form-item>
+          <el-form-item label="部门" prop="department">
+            <el-select v-model="saveForm.department" placeholder="请选择">
+              <el-option v-for="(item,key) in departmentOption" :key="key" :label="item" :value="item" ></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="应聘岗位" prop="post"><el-input v-model.trim="saveForm.post" maxlength="25"></el-input></el-form-item>
+          <el-form-item label="联系电话" prop="tel"><el-input v-model.trim="saveForm.tel" maxlength="20"></el-input></el-form-item>
+          <el-form-item label="微信号" prop="wx">
+            <el-col :span="9">
+              <el-input v-model.trim="saveForm.wx" maxlength="20"></el-input>
+            </el-col>
+            <el-col :span="3" style="padding-left:25px;">
+              <el-checkbox v-model="saveForm.isAddWx" value="1" :checked="saveForm.isAddWx == 'true'">已加微信</el-checkbox>
+            </el-col>
+          </el-form-item>
+          <el-form-item label="上传简历" prop="resume">
+            <el-upload 
+					    class="upload-demo"
+					    drag
+              multiple
+              accept=".pdf,.PDF,image/*"
+              ref="upload"
+              :on-progress="onUploadProgress"
+              :on-success="onUploadSuccess"
+              :on-error="onUploadError"
+					    :action=uploadUrl
+						  :with-credentials="credentials"
+						  :data="data"
+              :show-file-list="false"
+					  >
+					    <i class="fa fa-2x" :class="uploadIcon" style="color: #42A2FA;margin-top: 8px;"></i>
+					  </el-upload>
+            <div class="upload-demo-list" v-if="saveForm.resume">
+                <a :href="saveForm.resume" target="_blank"><span>{{saveForm.resumeName}}</span></a>
+                <i class="fa fa-close" @click="removeResume(key)"></i>
+            </div>
+          </el-form-item>
+          <el-form-item label="招聘渠道" prop="channel">
+            <el-select v-model="saveForm.channel" placeholder="请选择">
+              <el-option v-for="(item,key) in channelOption" :key="key" :label="item" :value="item" ></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="薪资要求" prop="salaryRequire"><el-input v-model.trim="saveForm.salaryRequire" maxlength="50"></el-input></el-form-item>
+          <el-form-item label="优先级" prop="priority">
+            <template v-for="(item,key) in priorityOption" :key="key">
+              <el-radio v-model="saveForm.priority" :label="key" >{{item}}</el-radio>
+            </template>
+          </el-form-item>
+          <el-form-item label="沟通结果" prop="contactResult">
+            <vxe-textarea class="txtarea-item" v-model="saveForm.contactResult" resize="vertical"></vxe-textarea>
+          </el-form-item>
+          <el-form-item label="是否复试" prop="isArrive">
+            <template v-for="(item,key) in judgmentOption" :key="key">
+              <el-radio v-model="saveForm.isArrive" :label="key">{{item}}</el-radio>
+            </template>
+          </el-form-item>
+          <el-form-item label="复试人" prop="retester" v-show="saveForm.isArrive==1"><el-input v-model.trim="saveForm.retester" maxlength="10"></el-input></el-form-item>
+          <el-form-item label="复试结果" prop="secondResult" v-show="saveForm.isArrive==1">
+            <vxe-textarea class="txtarea-item" v-model="saveForm.secondResult" resize="vertical"></vxe-textarea>
+          </el-form-item>
+          <el-form-item label="是否录用" prop="isHire" v-show="saveForm.isArrive==1">
+            <template v-for="(item,key) in judgmentOption" :key="key">
+              <el-radio v-model="saveForm.isHire" :label="key" >{{item}}</el-radio>
+            </template>
+          </el-form-item>
+          <el-form-item label="录用薪资待遇" prop="hireSalary" v-if="saveForm.isArrive==1 && saveForm.isHire==1"><el-input v-model.trim="saveForm.hireSalary" maxlength="100"></el-input></el-form-item>
+          <el-form-item label="预计报到时间" prop="checkinExpect" v-show="saveForm.isArrive==1">
+            <vxe-input v-model="saveForm.checkinExpect" type="date" parse-format="yyyy-dd-MM" clearable></vxe-input>
+          </el-form-item>
+          <el-form-item label="备注" prop="remark">
+            <vxe-textarea class="txtarea-item" v-model="saveForm.remark" resize="vertical"></vxe-textarea>
+          </el-form-item>
+        </el-scrollbar>
+        <el-form-item style="padding-top: 10px;">
+          <el-button type="primary" @click="submitForm('saveForm')">保存</el-button>
+          <el-button @click="is_show = false;this.$refs['saveForm'].resetFields();">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+<script>
+export default {
+  components: {},
+  data() {
+    return {
+      is_edit: false,
+      is_show: false,
+      sexOption: {},
+      departmentOption:[],
+      channelOption:[],
+      saveForm: {
+        department:"",
+        post:"",
+        channel:"",
+        name:"",
+        sex:"",
+        age:"",
+        tel:"",
+        education:"",
+        workExp:"",
+        currentPost:"",
+        currentCompany:"",
+        salaryRequire:"",
+        source:"",
+        telResult:"",
+        description:"",
+        isArrive:"",
+        firstTest:"",
+        firstResult:"",
+        recommender:"",
+        secondTest:"",
+        isHire:"",
+        checkinExpect:"",
+        isCheckin:"",
+        checkinActual:"",
+        regularTime:"",
+        isRegular:"",
+        remark:"",
+      },
+      upload:true,
+      credentials:true,
+      uploadIcon:"fa-plus",
+      uploadUrl:this.axios.defaults.baseURL+"/hr/candidate/upload",
+      data:{
+        'factoryId':localStorage.getItem('factory'),
+        'accessToken':localStorage.getItem('accessToken')
+      },
+      rules: {
+        department: [{ required: true, message: "请选择部门", trigger: "blur" }],
+        post: [{ required: true, message: "请输入应聘岗位", trigger: "blur" }],
+        name: [{ required: true, message: "请输入姓名", trigger: "blur" }],
+        tel: [{ required: true, message: "请输入联系电话", trigger: "blur" }],
+        resume: [{ required: true, message: "请上传简历附件", trigger: "blur" }],
+      },
+    };
+  },
+  methods: {
+    onUploadProgress:function(){
+      this.uploadIcon="fa-refresh fa-spin"
+    },
+    onUploadSuccess:function(response, file, fileList){
+      this.uploadIcon="fa-plus"
+      if(response.code==200){
+        this.saveForm.resume = response.data.filepath;
+        this.saveForm.resumeName = response.data.filename;
+        this.$message.success(response.code.message)
+      }else{
+        this.$message.error(response.message)
+      }
+    },
+    onUploadError:function(response, file, fileList){
+      this.uploadIcon="fa-plus"
+      this.$message.error(response.message);
+    },
+    removeResume:function(key){
+      this.saveForm.resume = "";
+      this.saveForm.resumeName = "";
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          var func = this.saveForm.id ? this.api.hr.Candidate.Edit : this.api.hr.Candidate.Add
+          func(this.saveForm).then((res) => {
+            if (res.data.code == 200) {
+              this.is_show = !this.is_show;
+              this.$emit("page_list");
+              this.$message.success("修改成功");
+            }
+          });
+        } else {
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    },
+  },
+};
+</script>
+<style lang='less' scoped>
+  .txtarea-item{
+    line-height:2;
+  }
+  /deep/.upload-demo{
+    width: 80px;
+		height: 40px;
+  }
+  /deep/.upload-demo-list i{
+    color: red;
+    padding: 3px;
+    border-radius: 100%;
+    height: 14px;
+    width: 14px;
+    text-align: center;
+    cursor: pointer;
+    margin-left: 5px;
+  }
+  /deep/.upload-demo .upload-img{
+    width: 100%;
+		height: 100%;
+  }
+  /deep/.el-upload{
+		width: 80px;
+		height: 40px;
+	}
+	/deep/.el-upload-dragger{
+		width: 80px;
+		height: 40px;
+	}	
+</style>

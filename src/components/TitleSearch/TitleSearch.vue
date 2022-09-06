@@ -1,0 +1,57 @@
+<template>
+	<div v-dialogdrag v-if="SelectShow" id="v-dialogdrag">
+		<el-dialog  :title='title' v-model="SelectShow" :width="width">
+		<slot></slot>
+		<p style="text-align: center;" v-if="FootBtn">
+			<el-button type="primary" icon="el-icon-search" class="load_bt" @click="SearchBtn" size="mini">查询</el-button>
+		</p>
+		</el-dialog>
+	 
+	</div>
+</template>
+<script>
+	export default{
+		props:{
+			width:{
+				type:String,
+				default:"600px",
+			},
+			FootBtn:{
+				type:Boolean,
+				default:true
+			},
+			title:{
+				type:String,
+				default:"查询"
+			}
+		},
+		data(){
+			return{
+				SelectShow:false,
+			}
+		},
+		mounted() {
+		},
+		methods:{
+			SearchBtn:function(){		
+				this.$emit("page_list")
+				this.SelectShow=false
+			},
+		},
+	}
+</script>
+<style scoped="scoped" lang="less">
+	#v-dialogdrag{
+		overflow: hidden;
+	}
+	.load{
+		line-height: 175px
+	}
+	.el-progress{
+		margin-left: calc(50% - 63px);
+		margin-top: 45px;
+	}
+	/deep/.el-dialog__body{
+		padding: 0px 10px 10px 10px;
+	}
+</style>

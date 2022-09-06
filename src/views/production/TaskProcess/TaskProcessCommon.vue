@@ -1,0 +1,398 @@
+<template>
+	<el-container>
+		<el-header>
+			<vxe-toolbar ref="TaskToolbar" custom print export>
+				<template #buttons>
+					<el-row>
+						<el-col :span="7">
+							<!-- 
+							<vxe-input v-model.trim="search.productNo" placeholder="生产订单号"></vxe-input>
+							<vxe-input v-model.trim="search.invName" placeholder="子件名称"></vxe-input> 
+							-->
+							<el-col :span="12">
+								<vxe-button status="primary" @click="page_list">搜索</vxe-button>
+								<vxe-button @click="DownExcel">导出</vxe-button>
+							</el-col>
+							<el-col :span="12">
+								<el-radio-group v-model="dateType" size="small" class="date-type"
+									@change="changeDateType">
+									<el-radio-button :label="index" v-for="(item, index) in dateTypes" :key="index">
+										{{ item }}</el-radio-button>
+								</el-radio-group>
+							</el-col>
+						</el-col>
+						<el-col :span="10" class="task-header-nav">
+							<text>{{ dateTypes[dateType] }}制造令</text>
+							<i class="vxe-icon--caret-left" @click="setPrev"></i>
+							<span class="header-title">
+								<span @click="headerTitleClick">{{ headerTitle }}</span>
+								<el-date-picker ref="headerTitleDate" v-model="dp"
+									:type="dateType == 'month' ? 'month' : (dateType == 'week' ? 'week' : 'date')"
+									:editable="false" :clearable="false" @change="changeHeaderDate" />
+							</span>
+							<i class="vxe-icon--caret-right" @click="setNext"></i>
+						</el-col>
+					</el-row>
+				</template>
+			</vxe-toolbar>
+		</el-header>
+		<el-main>
+			<vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" border="full"
+				ref="Task" :print-config="{}" resizable show-overflow :expand-config="{ lazy: true }"
+				:auto-resize="$store.state.autoResize"
+				:checkbox-config="{ checkField: 'checked', trigger: 'row', range: true, highlight: true, }">
+				<vxe-column type="checkbox" width="50" align="center"></vxe-column>
+				<vxe-table-column field="id" title="ID" width="80px" align="center"></vxe-table-column>
+				<vxe-table-column field="workshopName" title="车间名称" width="100px" align="center"></vxe-table-column>
+				<vxe-table-column field="productNo" title="生产订单号" width="140px"></vxe-table-column>
+				<vxe-table-column field="productCode" title="成品编码" width="130px"></vxe-table-column>
+				<vxe-table-column field="productName" title="成品名称" width="150px"></vxe-table-column>
+				<vxe-table-column field="series" title="系列" width="100px" align="center"></vxe-table-column>
+				<vxe-table-column field="planQty" title="排产计划数量" width="110px" align="right"></vxe-table-column>
+				<vxe-table-column field="invCode" title="子件编码" width="120px"></vxe-table-column>
+				<vxe-table-column field="invName" title="子件名称" width="250px"></vxe-table-column>
+				<vxe-table-column field="craftName" title="工艺" width="90px"></vxe-table-column>
+				<vxe-table-column field="processName" title="工序" width="90px"></vxe-table-column>
+				<vxe-table-column field="quantity" title="数量(子件)" width="90px" align="right"></vxe-table-column>
+				<vxe-table-column field="packDate" title="包装日期" width="100px"></vxe-table-column>
+				<vxe-table-column field="produceDate" title="生产日期" width="100px"></vxe-table-column>
+				<vxe-table-column field="pipeLongStd" title="长管规格(mm)" width="130px" v-if="showPipe"></vxe-table-column>
+				<vxe-table-column field="pipeShortLength" title="短管管长(mm)" width="120px" align="right" v-if="showPipe">
+				</vxe-table-column>
+				<vxe-table-column field="pipeLongLength" title="长管长度(m)" width="110px" align="right" v-if="showPipe">
+				</vxe-table-column>
+				<vxe-table-column field="status" title="状态" align="center" fixed="right" width="90px">
+					<template #default="{ row }">
+						<el-button type="success" size='mini' v-if="row.status == '已生成'">{{ row.status }}</el-button>
+						<el-button type="warning" size='mini' v-else>{{ row.status }}</el-button>
+					</template>
+				</vxe-table-column>
+			</vxe-table>
+		</el-main>
+		<el-footer>
+			<page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+		</el-footer>
+		<card-log ref="flowCardLog" />
+	</el-container>
+
+</template>
+<script>
+import page from "@/components/page/page.vue";
+export default {
+	name: "TaskProcessCommon",
+	components: {
+		page,
+	},
+	props: ['workshop'],
+	data() {
+		let dateType = 'month';
+		let data = {
+			search: {},
+			totalCount: 0,
+			tableData: [],
+			select_id: "",
+			auto: true,
+			lazy: true,
+			headerTitle: '',
+			showPipe: false,
+			dateType: dateType,
+			dateTypes: {
+				'month': '月',
+				'week': '周',
+				'day': '日',
+			},
+			dp: ''
+		}
+		if (this.workshop) {
+			data.search.workshopName = this.workshop;
+			data.showPipe = this.workshop == '制管车间';
+		}
+		let arr = this.getDateTypeData(dateType);
+		data.headerTitle = arr[0];
+		data.search.produceDate = arr[1];
+		return data;
+	},
+	mounted() {
+		this.page_list();
+	},
+	created() {
+		this.$nextTick(() => {
+			// 手动将表格和工具栏进行关联
+			this.$refs.Task.connect(this.$refs.TaskToolbar)
+		})
+	},
+	methods: {
+		changeDateType(e) {
+			this.dateType = e;
+			let arr = this.getDateTypeData(e);
+			this.headerTitle = arr[0];
+			this.search.produceDate = arr[1];
+			this.page_list();
+		},
+		getDateTypeData(dateType) {
+			let date = new Date();
+			let year = date.getFullYear();
+			let month = date.getMonth() + 1;
+			let day = date.getDate();
+			let headerTitle = '';
+			let produceDate = [];
+			if (dateType == 'month') { // 月制造令
+				let array = this.getSearchMonthDate(year, month);
+				headerTitle = array[0] + '-' + array[1];
+				produceDate = [array[2], array[3]];
+			} else if (dateType == 'week') { // 周制造令
+				let week = date.getDay();
+				week = week == 0 ? 7 : week;
+
+				let startDate = this.getPrevNextDate(year, month, day - week + 1);
+				let endDate = this.getPrevNextDate(year, month, day + 7 - week);
+
+				headerTitle = startDate + ' 至 ' + endDate;
+				produceDate = [startDate, endDate];
+			} else if (dateType == 'day') { // 日制造令
+				let startDate = this.getPrevNextDate(year, month, day);
+				headerTitle = startDate;
+				produceDate = [startDate, startDate];
+			}
+			return [headerTitle, produceDate];
+		},
+		headerTitleClick(e) {
+			this.dp = this.search.produceDate[0];
+			this.$refs.headerTitleDate.focus();
+		},
+		changeHeaderDate(e) {
+			let date = new Date(e);
+			let year = date.getFullYear();
+			let month = date.getMonth() + 1;
+			let day = date.getDate();
+			if (this.dateType == 'month') {
+				let array = this.getSearchMonthDate(year, month);
+				this.headerTitle = array[0] + '-' + array[1];
+				this.search.produceDate = [array[2], array[3]];
+			} else if (this.dateType == 'week') {
+				let startDate = this.getPrevNextDate(year, month, day);
+				let endDate = this.getPrevNextDate(year, month, day + 6);
+				this.headerTitle = startDate + ' 至 ' + endDate;
+				this.search.produceDate = [startDate, endDate];
+			} else if (this.dateType == 'day') { // 日制造令
+				let startDate = this.getPrevNextDate(year, month, day);
+				this.headerTitle = startDate;
+				this.search.produceDate = [startDate, startDate];
+			}
+			this.page_list();
+		},
+		getDateFromObject(date) {
+			if (!date) {
+				date = new Date();
+			}
+			let year = date.getFullYear();
+			let month = date.getMonth() + 1;
+			month = month < 10 ? '0' + month : month;
+			let day = date.getDate();
+			day = day < 10 ? '0' + day : day;
+			return year + '-' + month + '-' + day;
+		},
+		setPrev() {
+			if (this.dateType == 'month') {
+				let startDate = this.search.produceDate[0];
+				if (!/^(\d{4})\-(\d{2})/.test(startDate)) {
+					this.$message.error('参数错误')
+					return false;
+				}
+				let year = parseInt(RegExp.$1);
+				let month = parseInt(RegExp.$2) - 1;
+				if (month <= 0) {
+					month = 12;
+					year -= 1;
+				}
+				let array = this.getSearchMonthDate(year, month);
+				this.headerTitle = array[0] + '-' + array[1];
+				this.search.produceDate = [array[2], array[3]];
+				this.page_list();
+			} else if (this.dateType == 'week') {
+				let startDate = this.search.produceDate[0];
+				if (!/^(\d{4})\-(\d{2})\-(\d{2})$/.test(startDate)) {
+					this.$message.error('参数错误')
+					return false;
+				}
+				let year = parseInt(RegExp.$1);
+				let month = parseInt(RegExp.$2);
+				let day = parseInt(RegExp.$3);
+
+				let start = this.getPrevNextDate(year, month, day - 7);
+				let end = this.getPrevNextDate(year, month, day - 1);
+
+				this.headerTitle = start + ' 至 ' + end;
+				this.search.produceDate = [start, end];
+				this.page_list();
+			} else if (this.dateType == 'day') {
+				let startDate = this.search.produceDate[0];
+				if (!/^(\d{4})\-(\d{2})\-(\d{2})$/.test(startDate)) {
+					this.$message.error('参数错误')
+					return false;
+				}
+				let year = parseInt(RegExp.$1);
+				let month = parseInt(RegExp.$2);
+				let day = parseInt(RegExp.$3);
+
+				let start = this.getPrevNextDate(year, month, day - 1);
+
+				this.headerTitle = start;
+				this.search.produceDate = [start, start];
+				this.page_list();
+			}
+		},
+		setNext() {
+			if (this.dateType == 'month') {
+				let startDate = this.search.produceDate[0];
+				if (!/^(\d{4})\-(\d{2})/.test(startDate)) {
+					this.$message.error('参数错误')
+					return false;
+				}
+				let year = parseInt(RegExp.$1);
+				let month = parseInt(RegExp.$2) + 1;
+				if (month >= 13) {
+					month = 1;
+					year += 1;
+				}
+				let array = this.getSearchMonthDate(year, month);
+				this.headerTitle = array[0] + '-' + array[1];
+				this.search.produceDate = [array[2], array[3]];
+				this.page_list();
+			} else if (this.dateType == 'week') {
+				let endDate = this.search.produceDate[1];
+				if (!/^(\d{4})\-(\d{2})\-(\d{2})$/.test(endDate)) {
+					this.$message.error('参数错误')
+					return false;
+				}
+				let year = parseInt(RegExp.$1);
+				let month = parseInt(RegExp.$2);
+				let day = parseInt(RegExp.$3);
+
+				let start = this.getPrevNextDate(year, month, day + 1);
+				let end = this.getPrevNextDate(year, month, day + 7);
+
+				this.headerTitle = start + ' 至 ' + end;
+				this.search.produceDate = [start, end];
+				this.page_list();
+			} else if (this.dateType == 'day') {
+				let endDate = this.search.produceDate[1];
+				if (!/^(\d{4})\-(\d{2})\-(\d{2})$/.test(endDate)) {
+					this.$message.error('参数错误')
+					return false;
+				}
+				let year = parseInt(RegExp.$1);
+				let month = parseInt(RegExp.$2);
+				let day = parseInt(RegExp.$3);
+
+				let start = this.getPrevNextDate(year, month, day + 1);
+
+				this.headerTitle = start;
+				this.search.produceDate = [start, start];
+				this.page_list();
+			}
+		},
+		page_list(resetPage) {
+			resetPage = resetPage || 0;
+			let pagesize = this.$refs.page_data.page_size;
+			if (resetPage) {
+				this.$refs.page_data.page = 1;
+			}
+			let page = this.$refs.page_data.page;
+			this.api.production.Task.GetListWithCraft(pagesize, page, this.search).then(res => {
+				if (res.data.code == 200) {
+					this.tableData = res.data.data.rows;
+					this.totalCount = parseInt(res.data.data.totalCount);
+				}
+			});
+		},
+		selectId(item) {
+			this.select_id = item.row.id;
+		},
+		DownExcel() {
+			this.api.production.Task.ExportListWithCraft(this.search).then(res => {
+				if (res.data.code == 200) {
+					this.$message.success(res.data.message)
+					window.location.href = res.data.data.exportList[0].url
+				}
+			})
+		},
+		getSearchMonthDate(year, month) {
+			month = month < 10 ? ('0' + month) : month;
+			let lastDay = new Date(year, month, 0).getDate();
+			let startDate = year + '-' + month + '-01';
+			let endDate = year + '-' + month + '-' + lastDay;
+			return [year, month, startDate, endDate]
+		},
+		getPrevNextDate(year, month, day) {
+			let monthLastDay = new Date(year, month, 0).getDate();
+			if (day <= 0) {
+				month -= 1;
+				if (month <= 0) {
+					month = 12;
+					year -= 1;
+				}
+				let lastDay = new Date(year, month, 0).getDate();
+				day = parseInt(lastDay) + day;
+			} else if (day > monthLastDay) {
+				day = day - monthLastDay;
+				month += 1;
+				if (month > 12) {
+					month = 1;
+					year += 1;
+				}
+			}
+			month = month < 10 ? ('0' + month) : month;
+			day = day < 10 ? ('0' + day) : day;
+			return year + "-" + month + "-" + day;
+		},
+	}
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+	padding: 0 20px 20px 20px;
+}
+
+.vxe-input {
+	margin-right: 8px;
+}
+
+/deep/.date-type {
+	margin-left: 5px;
+	line-height: 34px;
+}
+
+/deep/.date-type span {
+	line-height: 14px;
+}
+
+.task-header-nav {
+	text-align: center;
+	font-weight: bold;
+	line-height: 34px;
+	font-size: 16px;
+
+	i {
+		cursor: pointer;
+		margin: 0 20px;
+		color: #6da8d5;
+	}
+}
+
+.header-title {
+	position: relative;
+}
+
+.header-title span {
+	cursor: pointer
+}
+
+/deep/.header-title .el-input {
+	position: absolute;
+	width: 100%;
+	left: 0;
+	z-index: 1;
+	visibility: hidden;
+}
+</style>

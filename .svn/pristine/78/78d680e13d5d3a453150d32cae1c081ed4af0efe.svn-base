@@ -1,0 +1,165 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar ref="PackTaskToolbar"  custom print export>
+        <template #buttons>
+          <vxe-input v-model.trim="search.productNo" placeholder="销售订单号"></vxe-input>
+          <vxe-button status="primary" @click="page_list">搜索</vxe-button>
+		   <vxe-button  @click="editInfo" v-has="['time']">更改日期/工作中心</vxe-button>
+          <vxe-button  @click="intend" v-has="['intend']">备料单</vxe-button>
+      <!--    <vxe-button v-has="['edit']" @click="edit">修改</vxe-button>
+          <vxe-button v-has="['del']" @click="del">删除</vxe-button> -->
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table
+        :data="tableData"
+        highlight-current-row
+        highlight-hover-row
+        height="auto"
+        border="full"
+        ref="PackTask"
+		keep-source
+        :print-config="{}"
+        :auto-resize="$store.state.autoResize"
+        :checkbox-config="{checkField: 'checked', trigger: 'row',range: true,highlight: true,}"
+      >
+       <vxe-column type="checkbox" width="60" align="center"></vxe-column>
+        <vxe-table-column field="soNo" title="销售订单号" width="120px" align="center" ></vxe-table-column>
+        <vxe-table-column field="soSeq" title="行号"  width="70px" align="center"></vxe-table-column>
+		<vxe-table-column field="series" title="系列"  width="160px" align="center"></vxe-table-column>
+		 <vxe-table-column field="orderQty" title="订单数量"  width="100px" align="center"></vxe-table-column>
+        <vxe-table-column field="invCode" title="成品编码"   width="150px" :visible='false'></vxe-table-column>
+        <vxe-table-column field="invName" title="成品名称"  width="220px"></vxe-table-column>
+		 <vxe-table-column field="produceDate" title="计划日期"  width="150px" align="center" ></vxe-table-column>
+		 <vxe-table-column field="quantity" title="计划数量"  width="100px" align="center"></vxe-table-column>
+		  <vxe-table-column field="orderQualifyQty" title="入库数量"  width="100px" align="center"></vxe-table-column>
+		  <vxe-table-column field="workcenterName" title="工作中心"  width="150px" align="center"></vxe-table-column>
+		  <vxe-table-column field="status" title="状态"  width="120px" align="center">
+			  <template #default='{ row }'>
+				  <vxe-button status="success" size="mini" v-if="row.status=='已生成'">{{row.status}}</vxe-button>
+				   <vxe-button  size="mini" v-else>{{row.status}}</vxe-button>
+			  </template>
+		  </vxe-table-column>
+		   
+      </vxe-table>
+    </el-main>
+    <el-footer>
+      <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+    </el-footer>
+   <!-- <add  ref='add' @page_list="page_list" /> -->
+         <edit  ref='edit' @page_list="page_list" :FootBtn='false' width="500px">
+			 <el-form label-width="120px">
+				 <el-form-item label="日期">
+					 <vxe-input type="date" v-model="form.date" placeholder="请输入日期" />
+				 </el-form-item>
+				  <el-form-item label="工作中心">
+					  <el-cascader
+					      size="small"
+					  	:show-all-levels="false"
+					  	v-model="form.workcenterId"
+					    :options="WorkGetList"
+					    :props="{ expandTrigger: 'hover',label:'name',value:'id',emitPath:false}">
+					  </el-cascader>
+				  </el-form-item>
+				  <el-form-item>
+					  <el-button type="primary" @click="editSubmit">提交</el-button>
+				  </el-form-item>
+			 </el-form>
+		 </edit>
+	<IntendPrint  ref="IntendPrint" title="打印备料单"  width='1200px' />
+  </el-container>
+ 
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import edit from "@/components/TitleSearch/TitleSearch.vue";
+import IntendPrint from "./IntendPrint.vue";
+export default {
+  name: "PackTask",
+  components: {
+    page,
+    edit,
+   IntendPrint
+  },
+  data() {
+    return {
+      search: {},
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true,
+	  WorkGetList:[],
+	  form:{},
+    };
+  },
+created () {
+           this.$nextTick(() => {this.$refs.PackTask.connect(this.$refs.PackTaskToolbar)})
+            },
+  mounted() {
+    this.page_list();
+  },
+  methods: {
+    page_list: function() {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.production.PackTask.GetList(pagesize,page,this.search).then(res => {
+        if(res.data.code==200){
+        this.tableData = res.data.data.rows;
+        this.totalCount = parseInt(res.data.data.totalCount);
+        }else{
+        this.$message.error(res.data.message)}    
+      });
+    },
+    intend: function() {
+		let data = this.$refs.PackTask.getCheckboxRecords();
+		if (data.length != 1) {this.$message.error("请选择一条数据");return false}
+		this.$refs.IntendPrint.SelectShow=true;
+     this.api.production.PackTask.GetPrintInfo(data[0].id).then(res => {
+       if(res.data.code==200){
+             this.$refs.IntendPrint.table = res.data.data
+       }else{
+       this.$message.error(res.data.message)}    
+     });
+	
+    },
+	editInfo:function(row){
+		let data = this.$refs.PackTask.getCheckboxRecords();
+		if (data.length < 1) {this.$message.error("请至少选择一条数据");return false}
+		this.$refs.edit.SelectShow=true;
+		//获取工作中心
+		this.api.production.Assign.getWorkshopWorkcenters().then(res => {
+				if(res.data.code==200){
+					this.WorkGetList = res.data.data.workcenters;
+				}else{
+					this.$message.error(res.data.message);
+				}   
+		});
+	  },
+	editSubmit:function(){
+		let data = this.$refs.PackTask.getCheckboxRecords();
+		let ids = [];
+		data.forEach((i, v) => {ids.push(i.id)});
+		let obj={ids:ids,workcenterId:this.form.workcenterId,date:this.form.date};
+		this.api.production.PackTask.DispatchWorkcenter(obj).then(res=>{
+			if(res.data.code==200){
+				this.$message.success(res.data.message);
+				this.page_list();
+				this.$refs.edit.SelectShow=false;
+			}else{
+				this.$message.error(res.data.message);
+			}
+		})
+	}	
+  }
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+/deep/ .el-input__suffix-inner i{
+		height: 32px;
+	}
+</style>

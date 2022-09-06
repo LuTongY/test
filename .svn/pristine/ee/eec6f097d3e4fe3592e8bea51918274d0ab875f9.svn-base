@@ -1,0 +1,89 @@
+<template>
+	<div class="packaging">
+		<div class="title">
+			<h3>今日包装计划</h3>
+		</div>
+		<div class="main">
+			<div class="table">
+				<div class="table_header">
+					<div class="table_header_tr">
+						<div>订单号</div>
+						<div>成品名称</div>
+						<div>系列</div>
+						<div>包装组别</div>
+						<div>订单套数</div>
+						<div>已入库套数</div>
+						<div>进度</div>
+					</div>
+				</div>
+				
+				<div class="table_body" @mouseenter="clearTimer()" @mouseleave="startTime()">
+					<el-scrollbar>
+					<div class="table_body_tr" v-for="(item,index) in data">
+						<div>{{item.soSode}}</div>
+						<div>{{item.cinvName}}</div>
+						<div>{{item.xl}}</div>
+						<div>{{item.group}}</div>
+						<div>{{item.Qty}}</div>
+						<div>{{item.NQty}}</div>
+						<div>
+							 <el-progress :color="customColors" :text-inside="true" :stroke-width="26" :percentage="Number(item.percentage)" />
+						</div>
+					</div>
+					</el-scrollbar>
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</template>
+
+<script>
+	export	default{
+		data(){
+			return{
+				data:[{soSode:'OU2003A09-2','cinvName':'CWG3730167WTL','xl':'钢木家具','group':'A组','Qty':'200','NQty':'130','percentage':'65'},
+				      {soSode:'TT2003A06-1','cinvName':'CWG3730167WTL','xl':'鞋架','group':'B组','Qty':'200','NQty':'130','percentage':'80'},
+					  {soSode:'OU2083A09-8','cinvName':'CWG3730167WTL','xl':'衣帽架','group':'C组','Qty':'200','NQty':'130','percentage':'26'},
+					  {soSode:'OA2048A09-5','cinvName':'CWG3730167WTL','xl':'传统家具','group':'D组','Qty':'200','NQty':'130','percentage':'75'},
+					  {soSode:'UI2003A09-2','cinvName':'CWG3730167WTL','xl':'钢木家具','group':'F组','Qty':'200','NQty':'130','percentage':'30'},
+					  {soSode:'OK2003A09-2','cinvName':'CWG3730167WTL','xl':'钢木家具','group':'G组','Qty':'200','NQty':'130','percentage':'69'},
+					  ],
+				timer:'',
+				customColors:[
+				  { color: '#f56c6c', percentage: 20 },
+				  { color: '#e6a23c', percentage: 40 },
+				  { color: '#CAF61D', percentage: 60 },
+				  { color: '#1989fa', percentage: 80 },
+				  { color: '#24BB04', percentage: 100 },
+				]
+			}
+		},
+		mounted(){
+			clearInterval(this.timer)
+			this.startTime()
+		},
+		methods: {
+			startTime() {
+				this.timer=setInterval(this.dataList,2000);
+				
+				// setTimeout(,100)
+			},
+			dataList(){
+				this.data.push(this.data.shift())
+			},
+			clearTimer(){
+				 clearInterval(this.timer); //关闭
+			},
+		},
+		beforeDestroy() {
+		    if(this.timer) { //如果定时器还在运行直接关闭
+		       this.clearTimer()
+		    }
+		}
+	}
+</script>
+
+<style scoped lang="less">
+	@import url("./css/packaging.less");
+</style>

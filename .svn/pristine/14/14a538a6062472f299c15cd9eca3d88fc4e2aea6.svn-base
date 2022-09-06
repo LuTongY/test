@@ -1,0 +1,181 @@
+<template>
+	<div v-dialogdrag>
+		<el-dialog :title='title' v-model="is_show" :width="width" destroy-on-close>
+			<el-container>
+				<el-main>
+				<el-row class="subMitBtn">
+					<vxe-button status="primary" @click="Dispatch">提交</vxe-button>
+				</el-row>
+				<el-row :gutter="20">
+					<el-col :span="6">
+					   <vxe-table :data="data.staffList"
+					        highlight-current-row 
+					        highlight-hover-row
+							height="600" 
+							border="full"
+							row-id="userwork"
+							keep-source
+							ref="user"
+							@radio-change="UpdateUser"
+						    :auto-resize="$store.state.autoResize"
+							:radio-config="{labelField: 'name', trigger: 'row'}"
+					   >
+					   <vxe-column  type="radio"  title="选择"  align="center" width="60px"></vxe-column>
+					   <vxe-column  field="staffName"  title="人员"  align="left"></vxe-column>
+						</vxe-table>
+					</el-col>
+					<el-col :span="18">
+						<vxe-table 
+						    :data="data.inventoryList" 
+						    ref='allocation' 
+						    highlight-current-row 
+						    highlight-hover-row
+							height="600" 
+							border="full" 
+							keep-source
+							@checkbox-change="UpdateInvcode"
+							:auto-resize="$store.state.autoResize"
+							:checkbox-config="{checkField: 'checked', trigger: 'row',range: true,highlight: true}">
+							<vxe-column type="checkbox" width="60" align="center"></vxe-column>
+							<vxe-column field="invName" title="物料名称"  align="left">
+								<template #default="{ row,rowIndex }">
+									<span>{{row.invName}}</span>
+									<el-tag v-for="tag in row.userList" :key="tag.id" closable size='mini' @close="handleClose(tag,rowIndex)"> {{ tag.staffName }} </el-tag>
+								</template>
+							</vxe-column>
+						</vxe-table>
+					</el-col>
+			
+
+				</el-row>
+				</el-main>
+			</el-container>
+		</el-dialog>
+	</div>
+</template>
+<script>
+	export default {
+		props: {
+			width: {
+				type: String,
+				default: "600px",
+			},
+			FootBtn: {
+				type: Boolean,
+				default: true
+			},
+			title: {
+				type: String,
+				default: "查询"
+			}
+		},
+		components: {},
+		data() {
+			return {
+				is_show: false,
+				data: {},
+				sumbitForm:[],
+				id:'',
+				userwork:'100017'
+			}
+		},
+		mounted() {
+		},
+		methods: {
+			setRadioRow(){
+				this.$refs.user.setRadioRow(this.data.staffList[0])
+			},
+			GetInfo(id) {
+				this.api.production.PackAssign.GetInfo(id).then(res => {
+					if (res.data.code == 200) {			
+						let staffList=[]
+						for(let obj in res.data.data.staffList){
+							let item={};
+							item.staffNo=obj;
+							item.staffName=res.data.data.staffList[obj];
+							staffList.push(item);
+						}
+						res.data.data.staffList=staffList
+						this.data = res.data.data
+						this.setRadioRow();
+						console.log(this.data)
+					} else {
+						this.$message.error(res.data.message)
+					}
+				})
+			},
+		    assigningJob(row){
+				let data=this.$refs.allocation.getCheckboxRecords();
+				if(data.length<1){this.$message.error("请至少选择一个物料");return false}
+				data.forEach((item,index)=>{
+					let invcodeindex=this.data.inventoryList.findIndex((v)=>{return v.invCode==item.invCode});
+					if(this.data.inventoryList[invcodeindex].hasOwnProperty("user")){
+					   if(this.data.inventoryList[invcodeindex].userList.findIndex((v)=>{return v.staffNo==row.staffNo})>-1){return false}
+						this.data.inventoryList[invcodeindex].userList.push(row)
+						}
+					else{
+						this.data.inventoryList[invcodeindex].userList=[row];};
+				})
+				this.$refs.allocation.clearCheckboxRow()
+				console.log(this.data)
+			},
+			handleClose(tag,rowIndex){
+				let index=this.data.inventoryList[rowIndex].userList.findIndex((v)=>{return v.staffNo==tag.staffNo});
+				this.data.inventoryList[rowIndex].userList.splice(index,1)
+			},
+			UpdateInvcode(object){
+				if(object.row.checked == true){
+					if(!this.data.inventoryList[object.$rowIndex].userList){this.data.inventoryList[object.$rowIndex].userList=[]}
+					let user=this.$refs.user.getRadioRecord();
+					if(this.data.inventoryList[object.$rowIndex].userList.findIndex((v)=>{return v.staffNo==user.staffNo})>-1){return false}
+					this.data.inventoryList[object.$rowIndex].userList.push(user);
+				}else{
+					
+				}
+			},
+			Dispatch(){
+				let submitForm=[];
+				let userlistIndex=[];
+				this.data.inventoryList.forEach((item,index)=>{
+					if(item.userList){
+						item.userList.forEach((i,v)=>{
+							let index=userlistIndex.indexOf(i.staffNo)
+							console.log(index)
+							if(index > -1){
+								console.log(submitForm)
+								submitForm[index].invCode.push(item.invCode)
+							}else{
+								userlistIndex.push(i.staffNo)
+								let obj={'workNo':i.staffNo,'invCode':[item.invCode]}
+								submitForm.push(obj);
+							}
+						})
+					}
+				})
+				console.log(submitForm)
+				let data={'id':this.id,'data':submitForm}
+				this.api.production.PackAssign.Dispatch(data).then((res)=>{
+					if(res.data.code==200){
+						this.$message.success(res.data.message)
+						this.is_show=false
+					}else{
+						this.$message.error(res.data.message)
+					}
+				})
+			},
+		  UpdateUser(){
+			   this.$refs.allocation.clearCheckboxRow()
+		  }
+		},
+	}
+</script>
+<style scoped>
+	/deep/ .el-main,
+	/deep/ .el-dialog__body{
+		padding-top: 0;
+	}
+	.subMitBtn{
+		/* margin-left: 10px; */
+		padding:5px 0 ;
+	}
+</style>

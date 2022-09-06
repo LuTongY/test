@@ -1,0 +1,16 @@
+<template>
+	<task-craft-common mode="month" workshop="" />
+</template>
+<script>
+import TaskCraftCommon from "./TaskCraftCommon.vue";
+export default {
+	name: "TaskCraftMonth",
+	components: {
+		TaskCraftCommon
+	},
+	data() {
+		return {};
+	},
+	methods: {}
+};
+</script>

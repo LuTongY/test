@@ -1,0 +1,72 @@
+<template>
+	<div v-dialogdrag v-if="isShow">
+		<el-dialog :title='title' v-model="isShow" :width="width">
+			<div class="main_warpper" :style="{height:height}">
+				<slot></slot>
+			</div>
+			 <template #footer v-if="FootBtn">
+			      <span class="dialog-footer">
+			        <el-button @click="isShow = false">取消</el-button>
+			        <el-button type="primary" @click="submitForm('MyDialog_from')">确认</el-button>
+			      </span>
+			</template>
+		</el-dialog>
+	</div>
+</template>
+<script>
+	export default {
+		props: {
+			width: {
+				type: String,
+				default: "600px",
+			},
+			height:{
+				type: String,
+				default: "600px",
+			},
+			FootBtn: {
+				type: Boolean,
+				default: true
+			},
+			title: {
+				type: String,
+				default: ""
+			},
+		},
+		data() {
+			return {
+				isShow: false,
+				FormRefs:'',
+			}
+		},
+		mounted() {
+			 this.$nextTick(() => {
+			     console.log(this.$refs)
+			  })
+		},
+		methods: {
+			submitForm(formName) {
+				this.$emit("DialogBtn")	
+			}
+		},
+	}
+</script>
+<style scoped="scoped" lang="less">
+	.load {
+		line-height: 175px
+	}
+
+	.el-progress {
+		margin-left: calc(50% - 63px);
+		margin-top: 45px;
+	}
+
+	/deep/.el-dialog__body {
+		padding: 0px 10px 10px 10px;
+	}
+
+	/deep/.main_warpper {
+		padding: 20px;
+		padding-bottom: 0px;
+	}
+</style>

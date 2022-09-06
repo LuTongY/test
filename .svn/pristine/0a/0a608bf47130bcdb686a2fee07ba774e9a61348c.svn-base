@@ -1,0 +1,16 @@
+<template>
+	<task-craft-common mode="week" workshop="焊接车间" />
+</template>
+<script>
+import TaskCraftCommon from "./TaskCraftCommon.vue";
+export default {
+	name: "TaskCraftWeekHJ",
+	components: {
+		TaskCraftCommon
+	},
+	data() {
+		return {};
+	},
+	methods: {}
+};
+</script>

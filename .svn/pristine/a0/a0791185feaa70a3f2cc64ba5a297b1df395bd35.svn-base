@@ -1,0 +1,140 @@
+<template>
+     <div class="about grid-content bg-purple" ref="echart" id="echart"></div>
+</template>
+ 
+<script>
+export default {
+	props:{
+		list:{
+			type:Array,
+			default() {
+			        return [{'value': 1, 'name': '没有传入数据'}]
+			      }
+		},
+		text:{
+			type:String,
+			default:'没有传入表头名称',
+		},
+		autoShow:{
+			type:Boolean,
+			default:false
+		}
+		
+	},
+	data(){
+		return {
+			myChart:'',
+			currentIndex:-1,// 当前高亮图形在饼图数据中的下标
+			changePieInterval:'', //设置自动切换高亮图形的定时器
+		}
+	},
+	mounted(){
+		 if(this.changePieInterval){
+			 clearInterval(this.changePieInterval);
+			 }
+		 window.addEventListener('resize',this.handleResizeChart);
+		 // 基于准备好的dom，初始化echarts实例
+		 this.myChart =this.$echarts.init(this.$refs.echart);
+		 this.setOption();
+		 this.changePieInterval=this.autoShow? this.changePieInterval = setInterval(this.selectPie, 2000):'';
+		 if(this.changePieInterval){this.mouseover();this.mouseout();}
+	},
+	methods:{
+		//页面改变时自动修改图形大小
+		handleResizeChart(){
+			this.myChart.resize();
+		},
+		//配置相关属性
+		setOption(){
+			this.myChart.setOption({
+  		    	title:{
+  		    		text:this.text
+  		    	},
+  		    	 tooltip: {
+  		    	    trigger: 'item'
+  		    	  },
+  		    	  legend: {
+  		    	    top: '40px',
+  		    	    left: 'center'
+  		    	  },
+  		    	  series: [
+  		    	    {
+  		    	      name: '类型',
+  		    		  top:'50',
+  		    	      type: 'pie',
+  		    	      radius: ['50%', '80%'],
+  		    	      avoidLabelOverlap: false,
+  		    	      label: {
+  		    	        show: false,
+  		    	        position: 'center',
+						formatter: '{b}:{c}' + '\n\r' + '({d}%)',
+  		    	      },
+  		    	      emphasis: {
+  		    	        label: {
+  		    	          show: true,
+  		    	          fontSize: '18', //环形图中间文字大小
+  		    	          fontWeight: 'bold'
+  		    	        }
+  		    	      },
+  		    	      labelLine: {
+  		    	        show: false
+  		    	      },
+  		    	      data: this.list
+  		    	    }
+  		    	  ]
+  		    })
+		},
+		highlightPie() { // 取消所有高亮并高亮当前图形
+		  for(var idx in this.list)
+		    // 遍历饼图数据，取消所有图形的高亮效果
+		    this.myChart.dispatchAction({
+		      type: 'downplay',
+		      seriesIndex: 0,
+		      dataIndex: idx
+		    });
+		  // 高亮当前图形
+		  this.myChart.dispatchAction({
+		    type: 'highlight',
+		    seriesIndex: 0,
+		    dataIndex: this.currentIndex
+		  });
+		},
+		// 鼠标移入
+		mouseover(){// 用户鼠标悬浮到某一图形时，停止自动切换并高亮鼠标悬浮的图形
+		this.myChart.on('mouseover', (params) => { // 用户鼠标悬浮到某一图形时，停止自动切换并高亮鼠标悬浮的图形
+		  clearInterval(this.changePieInterval);
+		  this.currentIndex = params.dataIndex;
+		  this.highlightPie();
+		});
+		},
+		// 鼠标移出
+		mouseout(){
+			this.myChart.on('mouseout', (params) => { // 用户鼠标移出时，重新开始自动切换
+			  this.changePieInterval = setInterval(this.selectPie, 2000);
+			});
+		},
+		// 高亮效果切换到下一个图形
+		 selectPie() { 
+		  let dataLen = this.list.length;
+		  this.currentIndex = (this.currentIndex + 1) % dataLen;
+		  this.highlightPie();
+		}
+	},
+	onBeforeUnmount(){
+		//取消监听
+		window.removeEventListener('resize',handleResizeChart);
+		clearInterval(this.changePieInterval);
+	}
+	
+	}
+</script>
+ 
+<style  scoped>
+#echart {
+  height: calc(100% - 20px);
+  width: calc(100% - 20px);
+  background: #fff;
+  padding: 10px;
+  border-radius: 10px;
+}
+</style>

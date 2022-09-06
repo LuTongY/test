@@ -1,0 +1,434 @@
+<template>
+  <div v-dialogdrag>
+    <el-dialog :title="(is_edit ? '修改' : '添加') + '应聘者信息'" v-model="is_show" width="1100px" destroy-on-close>
+      <el-form :model="saveForm" :rules="rules" ref="saveForm" label-width="110px">
+        <el-row>
+          <el-col :span="10">
+            <el-scrollbar height="500px" style="padding-right:20px;border-right: 1px solid #ccc;margin-right: 20px;">
+              <el-form-item label="应聘者姓名" prop="name">
+                <el-input v-model.trim="saveForm.name" maxlength="20"></el-input>
+              </el-form-item>
+              <el-form-item label="部门/职位" prop="postId">
+                <el-cascader v-model="saveForm.postId" :options="postList" :props="postProps"></el-cascader>
+              </el-form-item>
+              <el-form-item label="联系电话" prop="tel">
+                <el-input v-model.trim="saveForm.tel" maxlength="20"></el-input>
+              </el-form-item>
+              <el-form-item label="微信号" prop="wx">
+                <el-col :span="16">
+                  <el-input v-model.trim="saveForm.wx" maxlength="20"></el-input>
+                </el-col>
+                <el-col :span="3" style="padding-left:25px;">
+                  <el-checkbox v-model="saveForm.isAddWx" value="1" :checked="saveForm.isAddWx == 'true'">已加微信
+                  </el-checkbox>
+                </el-col>
+              </el-form-item>
+              <el-form-item label="上传简历" prop="resume">
+                <el-upload class="upload-demo" drag multiple accept=".pdf,.PDF,image/*" ref="upload"
+                  :on-progress="onUploadProgress" :on-success="onUploadSuccess" :on-error="onUploadError"
+                  :action=uploadUrl :with-credentials="credentials" :data="data" :show-file-list="false">
+                  <i class="fa fa-2x" :class="uploadIcon" style="color: #42A2FA;margin-top: 8px;"></i>
+                </el-upload>
+                <div class="upload-demo-list" v-if="saveForm.resume">
+                  <a :href="saveForm.resume" target="_blank"><span>{{ saveForm.resumeName }}</span></a>
+                  <i class="fa fa-close" @click="removeResume(key)"></i>
+                </div>
+              </el-form-item>
+              <el-form-item label="招聘渠道" prop="channel">
+                <el-select v-model="saveForm.channel" placeholder="请选择">
+                  <el-option v-for="(item, key) in channelOption" :key="key" :label="item" :value="item"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="薪资要求" prop="salaryRequire">
+                <el-input v-model.trim="saveForm.salaryRequire" maxlength="50"></el-input>
+              </el-form-item>
+              <!--
+              <el-form-item label="优先级" prop="priority">
+                <template v-for="(item, key) in priorityOption" :key="key">
+                  <el-radio v-model="saveForm.priority" :label="key">{{ item }}</el-radio>
+                </template>
+              </el-form-item>
+              -->
+              <el-form-item label="沟通结果" prop="contactResult">
+                <vxe-textarea class="txtarea-item" v-model="saveForm.contactResult" resize="vertical"></vxe-textarea>
+              </el-form-item>
+              <el-form-item label="是否复试" prop="isArrive">
+                <template v-for="(item, key) in judgmentOption" :key="key">
+                  <el-radio v-model="saveForm.isArrive" :label="key">{{ item }}</el-radio>
+                </template>
+              </el-form-item>
+              <el-form-item label="复试人" prop="retester" v-show="saveForm.isArrive == 1">
+                <el-input v-model.trim="saveForm.retester" maxlength="10"></el-input>
+              </el-form-item>
+              <el-form-item label="复试结果" prop="secondResult" v-show="saveForm.isArrive == 1">
+                <vxe-textarea class="txtarea-item" v-model="saveForm.secondResult" resize="vertical"></vxe-textarea>
+              </el-form-item>
+              <el-form-item label="是否录用" prop="isHire" v-show="saveForm.isArrive == 1">
+                <template v-for="(item, key) in judgmentOption" :key="key">
+                  <el-radio v-model="saveForm.isHire" :label="key">{{ item }}</el-radio>
+                </template>
+              </el-form-item>
+              <el-form-item label="录用薪资待遇" prop="hireSalary" v-if="saveForm.isArrive == 1 && saveForm.isHire == 1">
+                <el-input v-model.trim="saveForm.hireSalary" maxlength="100"></el-input>
+              </el-form-item>
+              <el-form-item label="预计报到时间" prop="checkinExpect" v-show="saveForm.isArrive == 1 && saveForm.isHire == 1">
+                <vxe-input v-model="saveForm.checkinExpect" type="date" parse-format="yyyy-dd-MM" clearable></vxe-input>
+              </el-form-item>
+              <el-form-item label="身份证号" prop="idCardNo" v-show="saveForm.isArrive == 1 && saveForm.isHire == 1">
+                <el-input v-model.trim="saveForm.idCardNo" maxlength="20"></el-input>
+              </el-form-item>
+              <el-form-item label="备注" prop="remark">
+                <vxe-textarea class="txtarea-item" v-model="saveForm.remark" resize="vertical"></vxe-textarea>
+              </el-form-item>
+            </el-scrollbar>
+          </el-col>
+          <el-col :span="14">
+            <vxe-toolbar>
+              <template #buttons>
+                <vxe-button status="primary" icon="fa fa-plus" @click="saveContact(false)">新增沟通记录</vxe-button>
+                <vxe-button icon="fa fa-edit" @click="saveContact(true)">编辑沟通记录</vxe-button>
+                <vxe-button @click="deleteContact">删除沟通记录</vxe-button>
+              </template>
+            </vxe-toolbar>
+            <el-scrollbar height="412px">
+              <table class="gxTable">
+                <thead>
+                  <tr>
+                    <td style="width:25px;">选项</td>
+                    <td style="width:70px;">沟通时间</td>
+                    <td style="width:50px;">类别</td>
+                    <td style="width:60px;">时长(分钟)</td>
+                    <td style="width:70px;">截图凭证</td>
+                    <td style="width:230px">沟通结果</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, tr_index) in saveForm.contactList" :key="tr_index">
+                    <template v-if="item">
+                      <td style="text-align: center;">
+                        <el-checkbox v-model="item.checked" @change='checkContact(tr_index)'></el-checkbox>
+                      </td>
+                      <td style="">{{ item.contactTime }}</td>
+                      <td style="text-align: center;">{{ item.typeName }}</td>
+                      <td style="text-align: right;">{{ item.type != 3 ? item.duration : '' }}</td>
+                      <td style="">
+                        <a :href="itemSub" target="_blank" v-for="(itemSub, key) in item.pictures" :key="key">
+                          <img :src="itemSub" />
+                        </a>
+                      </td>
+                      <td style="text-align: center;border-right: none;">{{ item.remark }}</td>
+                    </template>
+                  </tr>
+                  <template v-if="saveForm.contactList.length<=0">
+                    <tr>
+                      <td colspan="6" style="text-align: center;line-height: 40px;">暂无沟通记录</td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </el-scrollbar>
+          </el-col>
+        </el-row>
+        <el-form-item style="padding-top: 10px;">
+          <el-button type="primary" @click="submitForm('saveForm')">保存</el-button>
+          <el-button @click="is_show = false; this.$refs['saveForm'].resetFields();">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+    <contactLogEdit ref="contactLogEdit" @callback="updateContactData" />
+  </div>
+</template>
+<script>
+import contactLogEdit from "@/views/hr/candidate/contactLogEdit.vue";
+export default {
+  components: {
+    contactLogEdit,
+  },
+  data() {
+    return {
+      is_edit: false,
+      is_show: false,
+      sexOption: {},
+      postList: [],
+      channelOption: [],
+      contactTypeOption: [],
+      saveForm: {
+        postId: "",
+        channel: "",
+        name: "",
+        sex: "",
+        age: "",
+        tel: "",
+        education: "",
+        workExp: "",
+        currentPost: "",
+        currentCompany: "",
+        salaryRequire: "",
+        source: "",
+        telResult: "",
+        description: "",
+        isArrive: "",
+        firstTest: "",
+        firstResult: "",
+        recommender: "",
+        secondTest: "",
+        isHire: "",
+        checkinExpect: "",
+        checkinStaffNo: "",
+        isCheckin: "",
+        checkinActual: "",
+        regularTime: "",
+        isRegular: "",
+        remark: "",
+        contactList: [],
+      },
+      postProps: {
+        expandTrigger: "hover",
+        value: "id",
+        label: "name",
+        emitPath: false
+      },
+      upload: true,
+      credentials: true,
+      uploadIcon: "fa-plus",
+      uploadUrl: this.axios.defaults.baseURL + "/hr/candidate/upload",
+      data: {
+        'factoryId': localStorage.getItem('factory'),
+        'accessToken': localStorage.getItem('accessToken')
+      },
+      rules: {
+        postId: [{ required: true, message: "请输入应聘岗位", trigger: "blur" }],
+        name: [{ required: true, message: "请输入姓名", trigger: "blur" }],
+        tel: [{ required: true, message: "请输入联系电话", trigger: "blur" }],
+        resume: [{ required: true, message: "请上传简历附件", trigger: "blur" }],
+        channel: [{ required: true, message: "请选择招聘渠道", trigger: "blur" }],
+      },
+    };
+  },
+  methods: {
+    onUploadProgress: function () {
+      this.uploadIcon = "fa-refresh fa-spin"
+    },
+    onUploadSuccess: function (response, file, fileList) {
+      this.uploadIcon = "fa-plus"
+      if (response.code == 200) {
+        this.saveForm.resume = response.data.filepath;
+        this.saveForm.resumeName = response.data.filename;
+        this.$message.success(response.code.message)
+      } else {
+        this.$message.error(response.message)
+      }
+    },
+    onUploadError: function (response, file, fileList) {
+      this.uploadIcon = "fa-plus"
+      this.$message.error(response.message);
+    },
+    removeResume: function (key) {
+      this.saveForm.resume = "";
+      this.saveForm.resumeName = "";
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          var func = this.saveForm.id ? this.api.hr.Candidate.Edit : this.api.hr.Candidate.Add
+          func(this.saveForm).then((res) => {
+            if (res.data.code == 200) {
+              this.is_show = !this.is_show;
+              this.$emit("page_list");
+              this.$message.success("修改成功");
+            }
+          });
+        } else {
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    },
+    checkContact: function (index) {
+      console.log(this.saveForm.contactList[index])
+    },
+    getCheckboxRecords: function () {
+      let array = [];
+      for (let i in this.saveForm.contactList) {
+        if (this.saveForm.contactList[i].checked) {
+          array.push(i);
+        }
+      }
+      return array;
+    },
+    saveContact: function (isEdit) {
+      let id = 0;
+      let data = this.getCheckboxRecords();
+      if (isEdit) {
+        if (data.length < 1) {
+          this.$message.error("请选择数据");
+          return false;
+        } else if (data.length > 1) {
+          this.$message.error("修改只能选择一条数据");
+          return false;
+        }
+        id = data[0];
+        this.$refs.contactLogEdit.contactIndex = id;
+        this.$refs.contactLogEdit.logSaveForm = this.saveForm.contactList[id];
+        this.$refs.contactLogEdit.is_edit = true;
+      } else {
+        this.$refs.contactLogEdit.contactIndex = '';
+        this.$refs.contactLogEdit.is_edit = false;
+        this.$refs.contactLogEdit.logSaveForm = {
+          contactTime: "",
+          type: "1",
+          duration: "",
+          pictures: [],
+          remark: ""
+        };
+      }
+      this.$refs.contactLogEdit.is_show = true;
+      this.$refs.contactLogEdit.typeOption = this.contactTypeOption;
+    },
+    updateContactData: function (data, index) {
+      let that = this;
+      setTimeout(function () {
+        let item = that.saveForm.contactList[index] || {};
+        item.contactTime = data.contactTime;
+        item.type = data.type;
+        item.typeName = data.typeName;
+        item.duration = data.duration;
+        item.pictures = data.pictures;
+        item.remark = data.remark;
+        if (index === '') {
+          that.saveForm.contactList.push(item);
+        } else {
+          that.saveForm.contactList[index] = item;
+        }
+      }, 200);
+    },
+    deleteContact: function () {
+      let data = this.getCheckboxRecords();
+      if (data.length < 1) {
+        this.$message.error("请先选择数据");
+        return false;
+      }
+      this.$confirm("确定要删除吗?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }).then(() => {
+        for (let i in data) {
+          delete this.saveForm.contactList[data[i]];
+        }
+      });
+    },
+  },
+};
+</script>
+<style lang='less' scoped>
+.txtarea-item {
+  line-height: 2;
+}
+
+/deep/.upload-demo {
+  width: 80px;
+  height: 40px;
+}
+
+/deep/.upload-demo-list i {
+  color: red;
+  padding: 3px;
+  border-radius: 100%;
+  height: 14px;
+  width: 14px;
+  text-align: center;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+/deep/.upload-demo .upload-img {
+  width: 100%;
+  height: 100%;
+}
+
+/deep/.el-upload {
+  width: 80px;
+  height: 40px;
+}
+
+/deep/.el-upload-dragger {
+  width: 80px;
+  height: 40px;
+}
+
+.gxTable {
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+  border: 1px solid #ccc;
+  font-size: 12px;
+  // width: 530px
+}
+
+.gxTableBody {
+  border: 1px solid #ccc;
+}
+
+.gxTable td {
+  padding: 0 10px
+}
+
+.gxTable thead td {
+  line-height: 30px;
+  border: 1px solid #ccc;
+  background-color: #f2f2f2;
+  text-align: center;
+}
+
+
+.gxTable tbody td {
+  border-bottom: 1px solid #ccc;
+}
+
+.gxTable tbody td a {
+  width: 20px;
+  height: 30px;
+  display: block;
+  float: left;
+  margin: 2px 3px 2px 0;
+}
+
+.gxTable tbody td img {
+  width: 100%;
+  height: 100%;
+}
+
+/deep/ .el-input__suffix-inner i,
+.el-input__prefix i {
+  height: 28px;
+}
+
+.el-main {
+  padding-top: 0;
+  padding-bottom: 5px;
+}
+
+.gxTable .el-input--mini .el-input__icon {
+  height: 28px
+}
+
+.el-cascader {
+  width: 100%
+}
+
+.gxTableMain {
+  width: 666px;
+  height: 467px;
+
+  overflow-y: overlay;
+}
+
+.el-form {
+  overflow: hidden;
+}
+
+#gxListTitle .el-form-item {
+  margin-bottom: 0px;
+}
+</style>

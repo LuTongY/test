@@ -1,0 +1,285 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar ref="candidateToolbar" custom print export>
+        <template #buttons>
+          <vxe-button status="primary" @click="showSearch">搜索</vxe-button>
+          <vxe-button v-has="['add']" @click="save(false)">新增</vxe-button>
+          <vxe-button v-has="['edit']" @click="save(true)">修改</vxe-button>
+          <vxe-button v-has="['del']" @click="del">删除</vxe-button>
+          <vxe-button v-has="['view']" @click="view">查看</vxe-button>
+          <vxe-button v-has="['log']" @click="contactLog">沟通记录</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" border="full" ref="DataList"
+        show-overflow :export-config="{}" :print-config="{}" :auto-resize="$store.state.autoResize"
+        @cell-click="selectId" :checkbox-config="{
+          checkField: 'checked',
+          trigger: 'row',
+          range: true,
+          highlight: true,
+        }">
+        <vxe-column type="checkbox" width="60" align="center"></vxe-column>
+        <vxe-table-column field="name" title="姓名" width="80px" align="center"></vxe-table-column>
+        <vxe-table-column field="departmentName" title="应聘部门" width="120px" align="center"></vxe-table-column>
+        <vxe-table-column field="postName" title="应聘岗位" width="150px" align="center"></vxe-table-column>
+        <vxe-table-column field="recruiterName" title="招聘人员" width="80px" align="center"></vxe-table-column>
+        <vxe-table-column field="priority" title="优先级" width="130px" align="center"></vxe-table-column>
+        <vxe-table-column field="channel" title="招聘渠道" width="130px" align="center"></vxe-table-column>
+        <!--
+        <vxe-table-column field="tel" title="联系电话" width="130px" align="center"></vxe-table-column>
+        <vxe-table-column field="wx" title="微信号" width="130px" align="center"></vxe-table-column>
+        -->
+        <vxe-table-column field="isAddWx" title="已加微信" width="80px" align="center"></vxe-table-column>
+        <!--
+        <vxe-column field="resume"  title="简历附件" width="120px">
+          <template #default="{ row }">
+            <a :href="row.resume" target="_blank">{{row.resumeName}}</a>
+          </template>
+        </vxe-column>
+        -->
+        <vxe-table-column field="salaryRequire" title="薪资要求" width="100px" align="center"></vxe-table-column>
+        <vxe-table-column field="totalTelDuration" title="电话时长(分钟)" width="120px" align="right"></vxe-table-column>
+        <vxe-table-column field="totalWxDuration" title="微信时长(分钟)" width="120px" align="right"></vxe-table-column>
+        <vxe-table-column field="totalDuration" title="沟通总时长(分钟)" width="140px" align="right"></vxe-table-column>
+        <vxe-table-column field="contactResult" title="沟通结果" width="100px" align="center"></vxe-table-column>
+        <vxe-table-column field="isArrive" title="是否复试" align="center" width="90px">
+          <template #default="{ row }">
+            <font color="red" v-if="row.isArrive == '是'">{{ row.isArrive }}</font>
+            <font color="orange" v-else-if="row.isArrive == '待确认'">{{ row.isArrive }}</font>
+            <font color="" v-else>{{ row.isArrive }}</font>
+          </template>
+        </vxe-table-column>
+        <vxe-table-column field="retester" title="复试人" width="100px" align="center"></vxe-table-column>
+        <vxe-table-column field="secondResult" title="复试结果" width="200px" align="center"></vxe-table-column>
+        <vxe-table-column field="isHire" title="是否录用" width="90px" align="center"></vxe-table-column>
+        <vxe-table-column field="hireSalary" title="录用薪资待遇" width="130px" align="center"></vxe-table-column>
+        <vxe-table-column field="checkinExpect" title="预计报到时间" width="120px" align="center"></vxe-table-column>
+        <vxe-table-column field="remark" title="备注" width="200px" align="center"></vxe-table-column>
+        <vxe-table-column field="createTime" title="添加时间" width="200px" align="center"></vxe-table-column>
+      </vxe-table>
+    </el-main>
+    <el-footer>
+      <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+    </el-footer>
+    <Dialog width="600px" title="查询" ref="search" @page_list="page_list">
+      <el-form label-width="120px">
+        <el-form-item label="招聘人员">
+          <el-select v-model="search.recruiterId" placeholder="请选择招聘人员" class="search-row" size="medium">
+            <el-option v-for="(item, key) in recruiterList" :key="key" :label="item" :value="key"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="部门">
+          <el-select v-model="search.departmentId" placeholder="请选择部门" class="search-row" size="medium">
+            <el-option v-for="(item, key) in departmentList" :key="key" :label="item" :value="key"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="应聘者">
+          <vxe-input placeholder="应聘者" v-model="search.name" class="search-row"></vxe-input>
+        </el-form-item>
+        <el-form-item label="优先级">
+          <el-select v-model="search.priority" placeholder="请选择优先级" class="search-row" size="medium">
+            <el-option v-for="(item, key) in priorityList" :key="key" :label="item" :value="key"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="联系电话">
+          <vxe-input placeholder="联系电话" v-model="search.tel" class="search-row"></vxe-input>
+        </el-form-item>
+        <el-form-item label="是否复试">
+          <el-select v-model="search.isArrive" placeholder="请选择" class="search-row" size="medium">
+            <el-option v-for="(item, key) in judgementList" :key="key" :label="item" :value="key"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="添加日期">
+          <vxe-input v-model="search.createDate" type="date" maxlength="10" clearable></vxe-input>
+        </el-form-item>
+      </el-form>
+    </Dialog>
+    <save ref="save" @page_list="page_list" />
+    <view_info ref="view_info" @page_list="page_list" />
+    <contactLog ref="contactLog" @page_list="page_list" />
+  </el-container>
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import save from "@/views/hr/candidate/save.vue";
+import view_info from "@/views/hr/candidate/view.vue";
+// import contactLog from "@/views/hr/candidate/contactLog.vue";
+import Dialog from "@/components/TitleSearch/TitleSearch.vue";
+export default {
+  name: "candidate",
+  components: {
+    page,
+    save,
+    view_info,
+    // contactLog,
+    Dialog
+  },
+  data() {
+    return {
+      search: { date: [] },
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true,
+      departmentList: [],
+      postList: [],
+      recruiterList: [],
+      priorityList: [],
+      judgementList: []
+    };
+  },
+  mounted() {
+    this.page_list();
+  },
+  created() {
+    this.$nextTick(() => {
+      // 手动将表格和工具栏进行关联
+      this.$refs.DataList.connect(this.$refs.candidateToolbar)
+    })
+  },
+  methods: {
+    showSearch: function () {
+      this.$refs.search.SelectShow = true;
+    },
+    page_list: function () {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.hr.Candidate.GetList(pagesize, page, this.search).then(
+        (res) => {
+          this.tableData = res.data.data.rows;
+          this.totalCount = parseInt(res.data.data.totalCount);
+          //this.search = res.data.data.search;
+          this.recruiterList = res.data.data.recruiterList;
+          this.departmentList = res.data.data.departmentList;
+          this.postList = res.data.data.postList;
+          this.priorityList = res.data.data.priorityList;
+          this.judgementList = res.data.data.judgmentOption;
+        }
+      );
+    },
+    selectId: function (item) {
+      this.select_id = item.row.id;
+    },
+    save: function (isEdit) {
+      let id = 0;
+      let data = this.$refs.DataList.getCheckboxRecords();
+      if (isEdit) {
+        if (data.length < 1) {
+          this.$message.error("请先选择数据");
+          return false;
+        } else if (data.length > 1) {
+          this.$message.error("修改只能选择一条数据");
+          return false;
+        }
+        id = data[0].id;
+      }
+      this.api.hr.Candidate.EditInfo(id).then((res) => {
+        if (res.data.code == 200) {
+          var row = res.data.data.row;
+          row.isArrive = row.isArrive.toString();
+          row.isHire = row.isHire.toString();
+          row.priority = row.priority.toString();
+
+          this.$refs.save.is_edit = id ? true : false;
+          this.$refs.save.is_show = !this.$refs.save.is_show;
+          // if(!row.channel) {
+          //   row.channel = (res.data.data.channelOption && res.data.data.channelOption[0]) ? res.data.data.channelOption[0] :'';
+          // }
+          row.contactList = res.data.data.contactList;
+          for (var i in row.contactList) {
+            row.contactList[i].checked = false;
+          }
+          row.postId = (row.postId || "").toString();
+          this.$refs.save.saveForm = row;
+          this.$refs.save.postList = res.data.data.postList;
+          this.$refs.save.judgmentOption = res.data.data.judgmentOption;
+          this.$refs.save.priorityOption = res.data.data.priorityOption;
+          this.$refs.save.channelOption = res.data.data.channelOption;
+          this.$refs.save.contactTypeOption = res.data.data.contactTypeOption
+        }
+      });
+    },
+    del: function () {
+      let data = this.$refs.DataList.getCheckboxRecords();
+      if (data.length < 1) {
+        this.$message.error("请先选择数据");
+        return false;
+      }
+      let ids = [];
+      data.forEach((i, v) => {
+        ids.push(i.id);
+      });
+      this.$confirm("确定要删除吗?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }).then(() => {
+        this.api.hr.Candidate.Del(ids).then((res) => {
+          console.log(res)
+          if (res.data.code == 200) {
+            this.$message.success("删除成功");
+          }
+          this.page_list();
+        });
+      });
+    },
+    view: function () {
+      let data = this.$refs.DataList.getCheckboxRecords();
+      if (data.length != 1) {
+        this.$message.error("请选择一条数据");
+        return false;
+      }
+      let id = data[0].id;
+      this.api.hr.Candidate.EditInfo(id).then((res) => {
+        if (res.data.code == 200) {
+          var row = res.data.data.row;
+          row.isArrive = row.isArrive.toString();
+          row.isHire = row.isHire.toString();
+          row.priority = row.priority.toString();
+
+          this.$refs.view_info.is_edit = id ? true : false;
+          this.$refs.view_info.is_show = !this.$refs.view_info.is_show;
+
+          row.contactList = res.data.data.contactList;
+          for (var i in row.contactList) {
+            row.contactList[i].checked = false;
+          }
+          row.postId = (row.postId || "").toString();
+          this.$refs.view_info.saveForm = row;
+          this.$refs.view_info.postList = res.data.data.postList;
+          this.$refs.view_info.recruiterList = res.data.data.recruiterList;
+          this.$refs.view_info.departmentList = res.data.data.departmentList;
+          this.$refs.view_info.postOptions = res.data.data.postOptions;
+          this.$refs.view_info.judgmentOption = res.data.data.judgmentOption;
+          this.$refs.view_info.priorityOption = res.data.data.priorityOption;
+          this.$refs.view_info.channelOption = res.data.data.channelOption;
+          this.$refs.view_info.contactTypeOption = res.data.data.contactTypeOption
+        }
+      });
+    },
+    contactLog: function () {
+      let data = this.$refs.DataList.getCheckboxRecords();
+      if (data.length < 1) {
+        this.$message.error("请先选择数据");
+        return false;
+      } else if (data.length > 1) {
+        this.$message.error("修改只能选择一条数据");
+        return false;
+      }
+      this.$refs.contactLog.is_show = !this.$refs.contactLog.is_show;
+      this.$refs.contactLog.candidateId = data[0].id;
+      this.$nextTick(() => {
+        this.$refs.contactLog.children_page_list();
+      })
+    }
+  },
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+</style>

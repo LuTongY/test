@@ -1,0 +1,155 @@
+<template>
+     <div class="about grid-content bg-purple" ref="echart" id="echart"></div>
+</template>
+ 
+<script>
+	var myChart=null;
+import * as echarts from 'echarts';
+export default {
+	props:{
+		//x轴名称
+		xAxis:{
+			type:Array,
+			default() {
+			        return []
+			      }
+		},
+		list:{
+			type:Array,
+			default() {
+			        return []
+			      }
+		},
+		text:{
+			type:String,
+			default:'没有传入表头名称',
+		},
+		autoShow:{
+			type:Boolean,
+			default:false
+		}
+		
+	},
+	data(){
+		return {
+			myChart:'',
+		}
+	},
+	mounted(){
+		 if(this.changePieInterval){clearInterval(this.changePieInterval);}
+		 window.addEventListener('resize',this.handleResizeChart);
+		 // 基于准备好的dom，初始化echarts实例
+		 myChart =this.$echarts.init(this.$refs.echart);
+		 this.setOption();
+		 this.changePieInterval=this.autoShow? this.changePieInterval = setInterval(this.selectPie, 2000):'';
+	     
+	},
+	methods:{
+		//页面改变时自动修改图形大小
+		handleResizeChart(){
+			setTimeout(()=>{myChart.resize();})	
+		},
+		//配置相关属性
+		setOption(){
+			myChart.setOption({
+				 tooltip: {
+				    trigger: 'axis',
+				    axisPointer: {
+				      type: 'shadow'
+				    }
+				  },
+				    grid: {
+				      left: '3%',
+				      right: '4%',
+				      bottom: '3%',
+				      containLabel: true
+				    },
+				title:{
+					text:this.text
+				},
+  		    	  xAxis: {
+  		    	    type: 'category',
+  		    	    data: this.xAxis,
+					 axisTick: {
+					        alignWithLabel: true
+					      }
+  		    	  },
+  		    	  yAxis: {
+  		    	    type: 'value'
+  		    	  },
+				 
+  		    	  series: [
+  		    	    {
+					  name: '入库数量',
+  		    	      data: this.list,
+  		    	      type: 'bar',
+					   itemStyle: {
+					          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+					            { offset: 0, color: '#83bff6' },
+					            { offset: 0.5, color: '#188df0' },
+					            { offset: 1, color: '#188df0' }
+					          ])
+					        },
+					  label:{
+					    normal:{ 
+					    show: true, 
+					    position: 'top'
+					  
+					     }
+					  },
+  		    	    }
+  		    	  ]
+  		    })
+		},
+		highlightPie() { // 取消所有高亮并高亮当前图形
+		  for(var idx in this.list)
+		    // 遍历饼图数据，取消所有图形的高亮效果
+		    myChart.dispatchAction({
+		      type: 'downplay',
+		      seriesIndex: 0,
+		      dataIndex: idx
+		    });
+		  // 高亮当前图形
+		  myChart.dispatchAction({
+		    type: 'highlight',
+		    seriesIndex: 0,
+		    dataIndex: this.currentIndex
+		  });
+		},
+		// 鼠标移入
+		mouseover(){// 用户鼠标悬浮到某一图形时，停止自动切换并高亮鼠标悬浮的图形
+			clearInterval(this.changePieInterval);
+			this.currentIndex = params.dataIndex;
+			this.highlightPie();
+		},
+		// 鼠标移出
+		mouseout(){
+			myChart.on('mouseout', (params) => { // 用户鼠标移出时，重新开始自动切换
+			  this.changePieInterval = setInterval(this.selectPie, 2000);
+			});
+		},
+		// 高亮效果切换到下一个图形
+		 selectPie() { 
+		  let dataLen = this.list.length;
+		  this.currentIndex = (this.currentIndex + 1) % dataLen;
+		  this.highlightPie();
+		}
+	},
+	onBeforeUnmount(){
+		//取消监听
+		window.removeEventListener('resize',handleResizeChart);
+		clearInterval(this.changePieInterval);
+	}
+	
+	}
+</script>
+ 
+<style  scoped>
+#echart {
+  height: calc(100% - 20px);
+  width: calc(100% - 20px);
+  background: #fff;
+  padding: 10px;
+  border-radius: 10px;
+}
+</style>

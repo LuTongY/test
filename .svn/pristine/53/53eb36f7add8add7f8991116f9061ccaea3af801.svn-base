@@ -1,0 +1,304 @@
+<template>
+  <el-row class="headMain">
+<!--    <el-col :span="1" class="Collapsed_icon">
+      <i
+        class="el-icon-s-fold"
+        @click="tabs_is_show"
+        style="font-size: 24px;line-height: 60px;"
+        v-show="$store.state.collapsed==true"
+      ></i>
+      <i
+        class="el-icon-s-unfold"
+        @click="tabs_is_show"
+        style="font-size: 24px;line-height: 60px;"
+        v-show="$store.state.collapsed==false"
+      ></i> -->
+   <!-- </el-col> -->
+    <el-col :span="11" class="header_left"></el-col>
+    <el-col :span="12" class="header_right">
+
+      <div class="grid-content bg-purple-light">
+		  <div class="icon_download">
+		   <el-tooltip content="系统参数修改" placement="bottom">
+		  	<i class="fa fa-dashboard download_icon" style="color: #6D6E70;cursor:pointer;" @click="DrawerShow"></i>
+		   </el-tooltip>
+		  </div>
+		 <div class="icon_download">
+		 <el-tooltip content="下载系统所需软件" placement="bottom">
+			<i class="fa fa-download download_icon" style="color: #6D6E70;cursor:pointer;" @click="downloadShow"></i>
+		 </el-tooltip>
+		</div>
+        <div class="factory">
+           <el-dropdown  @command="cutFactory" :disabled="Object.keys($store.state.factory_list).length==1">
+            <el-button type="primary">{{name}}
+            <i class="el-icon-arrow-down el-icon--right"></i>
+         </el-button>
+ 
+  <template #dropdown >
+    <el-dropdown-menu>
+		<template  v-for="(factory_item,factory_index) in $store.state.factory_list" :key="factory_index">
+              <el-dropdown-item v-if="factory_index !=$store.state.factory" :command="factory_index">{{factory_item}}</el-dropdown-item>
+		</template>
+    
+    </el-dropdown-menu>
+  </template>
+</el-dropdown>
+        </div>
+        <div class="user_icon"></div>
+        <div class="user_name">
+          <el-dropdown style="max-height: 60px;">
+            <div class="dropdown" style="display: flex;">
+              <div>
+                <img class="user_img" src="@\components\img\user.gif" alt />
+              </div>
+              <div class="user_text" style="display: flex;">
+                <span style="display:block;height: 60px;line-height: 60px;width: auto;">{{user_name}}</span>
+               <i class="el-icon-arrow-down"></i>
+              </div>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="$refs.ChangePw.SelectShow=true">个人中心</el-dropdown-item>
+                <el-dropdown-item @click="Logout">退出登陆</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
+    </el-col>
+	<Dialog width="680px" ref="dialog" title="下载" :FootBtn='false'>
+		<el-row >
+		  <el-col :span="6" v-for="(item, index) in downList" :offset="index > 0 ? 2 : 0">
+		    <el-card :body-style="{ padding: '0px' }">
+			  <span style="text-align: center;cursor: pointer;padding: 5px 0;">{{item.title}}</span>
+		      <img :src='item.img' alt="" style="width: 100%;">
+		      <div style="padding: 14px;">
+		        <span>{{item.name}}</span>
+		        <div class="bottom clearfix" style="text-align: center;">
+		          <el-button type="text" class="button"  style="margin: 0 auto;"><a :href="item.url" :download="item.download" style="color: #409eff;">下载</a></el-button>
+		        </div>
+		      </div>
+		    </el-card>
+		  </el-col>
+		</el-row>
+	</Dialog>
+	<Dialog ref='ChangePw' title="修改密码" :FootBtn='false' width="450px" >
+		<el-form ref='ChangePwForm' :rules="rules" :model="pw" label-position="left">
+			<el-form-item label="原密码"  label-width="90px" prop='old'>
+				<el-input v-model="pw.old"></el-input>
+			</el-form-item>
+			<el-form-item label='新密码' label-width="90px" prop='new1'>
+				<el-input v-model="pw.new1" type="password"></el-input>
+			</el-form-item>
+			<el-form-item label='确认密码' label-width="90px" prop='new2'>
+				<el-input v-model="pw.new2" type="password"></el-input>
+			</el-form-item>
+			<el-form-item>
+			      <el-button type="primary" @click="onSubmit('ChangePwForm')" style="float: right;">确认</el-button>
+			      <el-button @click="$refs.ChangePw.SelectShow=false" style="float: right;margin-right: 10px;">取消</el-button>
+		   </el-form-item>
+		</el-form>
+	</Dialog>
+  </el-row>
+</template>
+
+<script>
+import { removeMenu } from "@/cookie/user";
+import Dialog from "@/components/TitleSearch/TitleSearch.vue";
+export default {
+	components:{
+		Dialog
+	},
+  data() {
+	  var validatePass2 = (rule, value, callback) => {
+	          if (value === '') {
+	            callback(new Error('请再次输入密码'));
+	          } else if (value !== this.pw.new1) {
+	            callback(new Error('两次输入密码不一致!'));
+	          } else {
+	            callback();
+	          }
+	        };
+    return {
+	  pw:{old:'',new1:'',new2:''},
+	  user_name: unescape(this.$store.state.user.user_name),
+	  factoryId:'',
+	  name:this.$store.state.factory_list[this.$store.state.factory],
+	  rules:{
+		  old:[{  required: true, message: '请输入旧密码', trigger: 'blur',}],
+		  new1:[{ required: true, message: '请输入密码', trigger: 'blur',}],
+		  new2:[{ required: true,validator: validatePass2, trigger: 'blur' }],
+	  },
+	  downList:[{
+		  title:"Web打印服务",
+		  img:require("../../../public/img/print.png"),
+		  name:"C-Lodop4.141(64位)",
+		  url:`${process.env.BASE_URL}zip/CLodop_Setup_for_Win64NT_4.141EN.zip`,
+		  download:'CLodop_Setup_for_Win64NT_4.141EN.zip'
+	  },
+	  {
+		      title:"Web打印服务",
+	  		  img:require("../../../public/img/print.png"),
+	  		  name:"C-Lodop4.141(32位)",
+	  		  url:`${process.env.BASE_URL}zip/Lodop6.226_Clodop4.141.zip`,
+			  download:'Lodop6.226_Clodop4.141.zip'
+	  }
+	  ]
+    };
+  },
+  mounted(){
+	
+  },
+  methods: {
+    Logout: function() {
+      this.api.api.Logout().then(res => {
+        if (res.data.code == "200") {
+          this.$store.dispatch("logout");
+          this.$router.push({ path: "/login" });
+        }
+      });
+    },
+    tabs_is_show: function() {
+      this.$store.dispatch("changeCollapsed");
+	},
+	cutFactory:function(command){
+		localStorage.setItem('factory',command)	
+		this.get_menu_list()
+	},
+	get_menu_list:function(){
+			              this.api.api.menu_list().then((res)=>{
+							  if(res.data.code==200){
+								let arr=[];
+								arr.push(res.data.data.menus);
+								this.menu_list=arr[0];
+								localStorage.setItem("menu_list",JSON.stringify(arr[0]));
+								location.reload();							 
+							  }else{
+								  this.$message.error(res.data.message)
+							  }
+					   })
+		},
+	downloadShow:function(){
+		this.$refs.dialog.SelectShow=true
+	},
+	DrawerShow:function(){ 
+		this.$store.dispatch("changeDrawer")
+	},
+	onSubmit:function(formName){
+		console.log(this.$refs[formName]);
+		 this.$refs[formName].validate((valid) => {
+		        if (valid) {
+				let data={oldPassword:this.pw.old,password:this.pw.new2}
+		          this.api.user_list.ModifyPwd(data).then((res)=>{
+		          			if(res.data.code==200){
+						    this.$message.success(res.data.message)
+							this.$refs.ChangePw.SelectShow=false
+		          			}else{
+		          				this.$message.error(res.data.message)
+		          			 }
+		          })
+		        } else {
+		          return false
+		        }
+		      })
+	}
+  }
+};
+</script>
+
+<style scoped lang='less'>
+.grid-content {
+  display: flex;
+  height: 100%;
+  max-height: 60px;
+}
+.header_right > div {
+  float: right;
+  margin-right: 30px;
+}
+.headMain {
+  height: 100%;
+  overflow: hidden;
+  max-height: 60px;
+}
+.el-breadcrumb {
+  height: 100%;
+  line-height: 60px;
+  max-height: 60px;
+}
+.user_name {
+  color: #606266;
+  font-size: 15px;
+  cursor: pointer;
+  width: 120px;
+}
+.user_name i {
+  margin-left: 8px;
+  line-height: 59px;
+  overflow: hidden;
+}
+.el-dropdown {
+  max-height: 60px;
+  /* position: relative; */
+  /* top: calc(50% - 14px);
+		line-height: 60px; */
+}
+.user_img {
+  display: inline-block;
+  border-radius: 50%;
+  margin-right: 8px;
+  height: 40px;
+  margin-top: calc(50% - 15px);
+}
+.dropdown,
+.el-dropdown-selfdefine {
+  max-height: 60px;
+  min-width: 150px;
+}
+.dropdown {
+}
+span {
+  display: block;
+}
+.Collapsed_icon i {
+  cursor: pointer;
+}
+.factory{
+	line-height: 60px;
+	margin-right:20px
+}
+/deep/ .el-button--primary{
+	    background: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+}
+/deep/ .el-button--primary:hover{
+    color: #42A2FA;
+    border: 1px solid #42A2FA;
+}
+.icon_download{
+	line-height: 60px;
+	width: 42px;
+	margin: 0 auto;
+}
+/deep/.download_icon:hover{
+	color: #1890ff !important;
+}
+.icon_download{
+	text-align: center;
+	padding: 0 3px;
+}
+.el-card:hover{
+	cursor: pointer;
+	border-color: #409eff;
+	    -webkit-transform: translateY(-5px);
+	    transform: translateY(-5px);
+	    -webkit-box-shadow: 0 0 10px #999;
+	    box-shadow: 0 0 10px #999;
+	    -webkit-transition: all .5s ease-out;
+	    transition: all .5s ease-out;
+}
+/* .user_text{
+		width: 80px;
+	} */
+</style>

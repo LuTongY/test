@@ -1,0 +1,16 @@
+<template>
+	<task-craft-common mode="week" workshop="" />
+</template>
+<script>
+import TaskCraftCommon from "./TaskCraftCommon.vue";
+export default {
+	name: "TaskCraftWeek",
+	components: {
+		TaskCraftCommon
+	},
+	data() {
+		return {};
+	},
+	methods: {}
+};
+</script>

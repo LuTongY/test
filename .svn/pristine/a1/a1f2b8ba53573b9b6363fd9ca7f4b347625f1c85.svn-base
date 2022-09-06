@@ -1,0 +1,184 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar>
+        <template #buttons>
+          <vxe-button status="primary" @click="showSearch">搜索</vxe-button>
+          <vxe-button v-has="['add']" @click="add">新增</vxe-button>
+          <vxe-button v-has="['edit']" @click="edit">修改</vxe-button>
+          <vxe-button v-has="['delete']" @click="del">删除</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" border="full"
+        ref="RecruitmentPlan" :auto-resize="$store.state.autoResize" @cell-click="selectId" show-overflow
+        :checkbox-config="{ checkField: 'checked', trigger: 'row', range: true, highlight: true, }">
+        <vxe-column type="checkbox" width="60" align="center"></vxe-column>
+        <vxe-table-column field="recruiterName" title="招聘人员" width="80px"></vxe-table-column>
+        <vxe-table-column field="departmentName" title="部门" width="120px"></vxe-table-column>
+        <vxe-table-column field="postName" title="职位" width="120px"></vxe-table-column>
+        <vxe-table-column field="postTypeName" title="人员类别" width="80px"></vxe-table-column>
+        <vxe-table-column field="startTime" title="招聘开始日期" width="120px"></vxe-table-column>
+        <vxe-table-column field="endTime" title="招聘结束日期" width="120px"></vxe-table-column>
+        <vxe-table-column field="demandQty" title="需求人数" width="80px" align="right"></vxe-table-column>
+        <vxe-table-column field="quantity" title="招到人数" width="80px" align="right"></vxe-table-column>
+        <vxe-table-column field="remainQty" title="还需人数" width="80px" align="right"></vxe-table-column>
+        <vxe-table-column field="remark" title="备注" width="250px"></vxe-table-column>
+        <vxe-table-column field="createUser" title="创建人" width="100px"></vxe-table-column>
+        <vxe-table-column field="createTime" title="创建日期" width="180px"></vxe-table-column>
+      </vxe-table>
+    </el-main>
+    <el-footer>
+      <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+    </el-footer>
+    <Dialog width="500px" title="查询" ref="search" @page_list="page_list">
+      <el-form label-width="120px">
+        <el-form-item label="招聘人员">
+          <vxe-select v-model="search.recruiterId" placeholder="招聘人员" style="margin-right: 8px;">
+            <vxe-option label="全部"></vxe-option>
+            <vxe-option v-for="(item, index) in option.recruiterList" :key="index" :value="index" :label="item">
+            </vxe-option>
+          </vxe-select>
+        </el-form-item>
+        <el-form-item label="部门">
+          <vxe-select v-model="search.departmentId" placeholder="部门" style="margin-right: 8px;">
+            <vxe-option label="全部"></vxe-option>
+            <vxe-option v-for="(item, index) in option.departmentList" :key="index" :value="index" :label="item">
+            </vxe-option>
+          </vxe-select>
+        </el-form-item>
+        <el-form-item label="招聘类别">
+          <template v-for="(item, key) in option.postTypeList" :key="key">
+            <el-radio v-model="search.postType" :label="key">{{ item }}</el-radio>
+          </template>
+        </el-form-item>
+        <el-form-item label="招聘开始日期">
+          <el-date-picker v-model="search.startTime" type="date" placeholder="开始日期" value-format="YYYY-MM-DD">
+          </el-date-picker>
+        </el-form-item>
+      </el-form>
+    </Dialog>
+    <add ref='add' @page_list="page_list" />
+    <edit ref='edit' @page_list="page_list" />
+  </el-container>
+
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import add from "./add.vue";
+import edit from "./edit.vue";
+import Dialog from "@/components/TitleSearch/TitleSearch.vue";
+export default {
+  name: "recruitmentPlan",
+  components: {
+    page,
+    add,
+    edit,
+    Dialog
+  },
+  data() {
+    return {
+      search: { postType: 0 },
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true,
+      option: {}
+    };
+  },
+  mounted() {
+    this.page_list();
+  },
+  methods: {
+    page_list: function () {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.hr.RecruitmentPlan.GetList(
+        pagesize,
+        page,
+        this.search
+      ).then(res => {
+        this.tableData = res.data.data.rows;
+        this.option.departmentList = res.data.data.departmentList;
+        this.option.recruiterList = res.data.data.recruiterList;
+        this.option.postTypeList = res.data.data.postTypeList;
+        this.totalCount = parseInt(res.data.data.totalCount);
+      });
+    },
+    showSearch: function () {
+      this.$refs.search.SelectShow = true;
+    },
+    selectId: function (item) {
+      this.select_id = item.row.id;
+    },
+    add: function () {
+      this.$refs.add.is_show = !this.$refs.add.is_show;
+      this.$refs.add.options = this.option
+      this.$refs.add.Form = {};
+      this.api.hr.RecruitmentPlan.EditInfo(0).then((res) => {
+        if (res.data.code == 200) {
+          let row = res.data.data.row;
+          row.postType = row.postType.toString()
+          this.$refs.add.Form = row;
+          this.$refs.add.options.departmentList = res.data.data.departmentList;
+          this.$refs.add.options.recruiterList = res.data.data.recruiterList;
+          this.$refs.add.options.postList = res.data.data.postList;
+          this.$refs.add.options.postTypeList = res.data.data.postTypeList;
+        } else {
+          this.$message.error("获取数据失败")
+        }
+      })
+    },
+    edit: function () {
+      let data = this.$refs.RecruitmentPlan.getCheckboxRecords();
+      if (data.length < 1) {
+        this.$message.error("请先选择数据");
+        return false
+      } else if (data.length > 1) {
+        this.$message.error("修改只能单选"); return false
+      }
+      this.$refs.edit.is_show = !this.$refs.edit.is_show;
+      this.$refs.edit.options = this.option
+      this.$refs.edit.id = data[0].id
+      this.api.hr.RecruitmentPlan.EditInfo(data[0].id).then((res) => {
+        if (res.data.code == 200) {
+          let row = res.data.data.row;
+          row.postType = row.postType.toString();
+          row.recruiterId = row.recruiterId.toString();
+          row.postId = row.postId.toString();
+          row.date = [row.startTime, row.endTime];
+          this.$refs.edit.Form = row;
+          this.$refs.edit.options.recruiterList = res.data.data.recruiterList;
+          this.$refs.edit.options.postList = res.data.data.postList;
+          this.$refs.edit.options.postTypeList = res.data.data.postTypeList;
+          this.$refs.edit.Form.departmentId = String(this.$refs.edit.Form.departmentId)
+        } else {
+          this.$message.error("获取数据失败")
+        }
+      })
+    },
+    del: function () {
+      let data = this.$refs.RecruitmentPlan.getCheckboxRecords();
+      if (data.length < 1) { this.$message.error("请先选择数据"); return false }
+      let ids = [];
+      data.forEach((i, v) => { ids.push(i.id) });
+      this.$confirm("此操作将删除该数据, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        this.api.hr.RecruitmentPlan.del(ids).then(res => {
+          this.page_list();
+          this.$message.success("删除成功");
+        });
+      });
+    }
+  }
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+</style>

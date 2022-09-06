@@ -1,0 +1,217 @@
+<template>
+	<print-dialog ref='dialog' title='打印派工单' width='1200px' :FootBtn='false'>
+		<div class="IntendPrint_wapper">
+			<div class="IntendPrint_header" style="display: flex;">
+				<vxe-button @click="print(0)">打印</vxe-button>
+				<vxe-button @click="print(1)">预览</vxe-button>
+			</div>
+			<div class="IntendPrint_main" id="print" style="padding: 0 20px;height: 500px;overflow: auto;">
+				<el-empty :image-size="200" v-if="tableData.length<1" />
+				<form id="form1" v-else>
+					<table id="form2" border="1" width="90%"
+						style="margin:20px auto;border-collapse:collapse; font-size:16px;">
+						<thead>
+							<tr style='height: 40px;font-size: 13px;'>
+								<th style="width: 90px;">规格</th>
+								<th style="width: 80px;">形状</th>
+								<th style="">成品名称</th>
+								<th style="width: 50px;">厚度（MM）</th>
+								<th style="width: 75px;">制管长度（米）</th>
+								<th style="width: 75px;">制管数量（支）</th>
+								<th style="width: 80px;">制管总长度（米）</th>
+								<th style="width: 70px;">制管总重量（公斤）</th>
+								<th style="width: 70px;">裁管长度（米）</th>
+								<th style="width: 80px;">每支裁短管数量（支）</th>
+								<th style="width: 80px;">裁短管数量小计（支）</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template v-for="(item,index) in tableData">
+								<tr>
+									<td colspan=11>{{item.standard}}</td>
+								</tr>
+								<tr v-for="(childData_item,childData_index) in item.childData">
+									<td>{{childData_item.standard}}</td>
+									<td>{{childData_item.type}}</td>
+									<td>{{childData_item.product_name}}</td>
+									<td>{{childData_item.thickness}}</td>
+									<td>{{childData_item.length}}</td>
+									<td>{{childData_item.short_length}}</td>
+									<td>{{childData_item.pitch_num}}</td>
+									<td>{{childData_item.qty}}</td>
+									<td>{{childData_item.totalLength}}</td>
+									<td>{{childData_item.totalWeight}}</td>
+									<td>{{childData_item.totalShortQty}}</td>
+								</tr>
+								<tr>
+									<td>小计</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td>{{subtotal(item.childData,'pitch_num')}}</td>
+									<td>{{subtotal(item.childData,'qty')}}</td>
+									<td></td>
+									<td></td>
+									<td>{{subtotal(item.childData,'totalShortQty')}}</td>
+								</tr>
+							</template>
+						</tbody>
+						<tfoot>
+						</tfoot>
+					</table>
+				</form>
+				<div style="padding-top:15px;">
+					<form id="form4" v-if="statData.length>0">
+						<table border="1" width="90%"
+							style="margin:20px auto;border-collapse:collapse; font-size:16px;">
+							<thead>
+								<tr style='height: 40px;font-size: 13px;'>
+									<th style="height:30px;width: 90px;">规格</th>
+									<th style="height:30px;width: 80px;">形状</th>
+									<th style="height:30px;width: 95px;">制管总长度（米）</th>
+									<th style="height:30px;width: 110px;">制管总重量（公斤）</th>
+									<th style="height:30px;width: 125px;">裁短管数量小计（支）</th>
+								</tr>
+							</thead>
+							<tbody>
+								<template v-for="(item,index) in statData">
+									<tr>
+										<td>{{item.type}}</td>
+									</tr>
+									<tr v-for="(childData_item,childData_index) in item.childData">
+										<td>{{childData_item.standard}}</td>
+										<td>{{childData_item.type}}</td>
+										<td>{{childData_item.totalLength}}</td>
+										<td>{{childData_item.totalWeight}}</td>
+										<td>{{childData_item.totalShortQty}}</td>
+									</tr>
+									<tr>
+										<td>合计</td>
+										<td></td>
+										<td>{{subtotal(item.childData,'totalLength')}}</td>
+										<td>{{subtotal(item.childData,'totalWeight')}}</td>
+										<td>{{subtotal(item.childData,'totalShortQty')}}</td>
+									</tr>
+								</template>
+							</tbody>
+						</table>
+					</form>
+				</div>
+			</div>
+		</div>
+	</print-dialog>
+</template>
+<script>
+	import printDialog from "@/components/TitleSearch/TitleSearch.vue";
+	import {
+		getLodop
+	} from '@/components/js/LodopFuncs.js'
+	import print from "@/components/print/print.vue"
+	export default {
+		components: {
+			print,
+			printDialog,
+		},
+		props: {
+			tableData: {
+				default: [],
+			},
+			workcenterName: {
+				type: String,
+				default: '',
+			},
+			statData: {
+				default: [],
+			},
+			produceDate:{
+				default: '未传入日期',
+			}
+		},
+		data() {
+			return {
+				data: '',
+			}
+		},
+		computed: {
+
+		},
+		mounted() {},
+		methods: {
+			isShow: function() {
+				this.$refs.dialog.SelectShow = true;
+			},
+			subtotal: function(array = [], sunName) {
+				let sum = 0;
+				array.forEach((item, index) => {
+					sum += parseFloat(item[sunName]);
+				})
+				return sum;
+			},
+			print(s) {
+				try {
+					this.CreateOneFormPage();
+					if (s == 0) {
+						LODOP.PRINT();
+						this.$message.success("打印成功")
+						this.$refs.dialog.SelectShow = false;
+						this.$emit('page_list')
+					}
+					if (s == 1) {
+						LODOP.PREVIEW();
+					}
+				} catch (err) {
+					this.$message.error(err)
+				}
+
+			},
+			CreateOneFormPage() {
+				LODOP = getLodop();
+				LODOP.GET_VALUE("PRINT_STATUS_OK", 0);
+				LODOP.SET_PRINT_MODE("CATCH_PRINT_STATUS", true);
+				LODOP.SET_PRINT_PAGESIZE(2, 0, 0, "A4");
+				//内容   
+				LODOP.ADD_PRINT_TABLE(75, 20, "95%", "75%", document.getElementById("form1").innerHTML);
+				LODOP.SET_PRINT_STYLEA(0, "LinkedItem", 1);
+
+				LODOP.SET_PRINT_STYLEA(0, "Vorient", 3);
+
+
+				//标题   
+				LODOP.ADD_PRINT_HTM(30, "2.5%", "95%", 2000,
+					"<caption style='position:relative'><div style='font-size:20px; width:100%;margin-bottom: 10px;''>【制管车间生产排程表】("+this.produceDate[0]+"----"+this.produceDate[1]+") "+
+					"</div></div></caption>");
+				LODOP.SET_PRINT_STYLEA(0, "ItemType", 1);
+				LODOP.SET_PRINT_STYLEA(0, "LinkedItem", 1);
+
+				LODOP.NewPageA();
+
+				LODOP.ADD_PRINT_TABLE(25, 0, "95%", "75%", document.getElementById("form4").innerHTML);
+				LODOP.SET_PRINT_STYLEA(0, "LinkedItem", 2);
+
+				LODOP.ADD_PRINT_HTM(30, "2.5%", "95%", 2000,
+					"<caption style='position:relative'><div style='font-size:20px; width:100%;margin-bottom: 10px;''>【制管车间生产排程统计表】</div></div></caption>"
+					);
+
+				//页码    
+				LODOP.ADD_PRINT_HTM(545, "60%", "95%", 54,
+					"<div style='font-size:12px'>页号: </span><span style='font-size:12px' tdata='pageNO'>第##页</span>/<span style='font-size:12px' tdata='pageCount'>共##页</div>"
+					);
+				LODOP.SET_PRINT_STYLEA(0, "ItemType", 1);
+				LODOP.SET_PRINT_STYLEA(0, "LinkedItem", 1);
+			},
+		},
+	}
+</script>
+<style scoped>
+	.IntendPrint_wapper {
+		height: 100%;
+	}
+
+	.IntendPrint_main {
+		min-height: 500px;
+		height: calc(100% - 70px);
+		overflow: auto;
+	}
+</style>

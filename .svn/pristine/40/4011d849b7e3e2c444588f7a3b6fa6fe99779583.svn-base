@@ -1,0 +1,118 @@
+<!-- title:用户列表权限按钮
+   auth:路通
+   data:2021-07-19 -->
+<template>
+  <div v-dialogdrag>
+    <el-dialog title="权限" v-model="is_tree_show" width="500px">
+      <el-tabs v-model="tabsIndex" type="card" @tab-click="tabs">
+        <el-tab-pane
+          v-for="(factorysList_item,factorysList_index) in factorysList"
+          :key="factorysList_item"
+          :label="factorysList_item"
+          :name="factorysList_index"
+        >
+          <div style="max-height: 500px;overflow: auto;">
+            <el-input placeholder="请输入名称" v-model="filterText"></el-input>
+            <div style="max-height: 400px;overflow: auto;">
+              <el-tree
+                :default-checked-keys="checked[factorysList_index]"
+                class="filter-tree"
+                :data="tree_data[factorysList_index]"
+                :props="defaultProps"
+                show-checkbox
+                node-key="id"
+                :filter-node-method="filterNode"
+                :check-strictly="check_strictly"
+                :ref="'tree'+factorysList_index"
+				@check-change="check_tree"
+              ></el-tree>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click.stop="is_tree_show = false">取 消</el-button>
+          <el-button type="primary" @click.stop="affirm_bt">确 定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+<script>
+export default {
+  watch: {
+    filterText(val) {
+      this.$refs[`tree`+this.tabsIndex].filter(val);
+    }
+  },
+  
+  data() {
+    return {
+      check_strictly: true,
+      id: "",
+      is_tree_show: false,
+      filterText: "",
+      data: [],
+      defaultProps: {
+        children: "children",
+        label: "title"
+      },
+      checked: [],
+      checkedId: "",
+      tabsIndex: "",
+	  factorysList: "",
+	  updateTreeId:{}
+    };
+  },
+  props:['select_id'],
+  mounted() {
+  },
+  methods: {
+    get_auth: function(id) {
+      this.api.user_role.auth(id).then(res => {
+        if (res.data.code == 200) {
+		  this.tree_data = res.data.data.menus
+		  this.checked = res.data.data.checked
+		  this.factorysList = res.data.data.factorys;
+		  this.tabsIndex=Object.keys(res.data.data.factorys)[0]
+        } else {
+          this.$message.error(res.data.message);
+        }
+      });
+    },
+    filterNode: function(value, data) {
+      if (!value) return true;
+      return data.title.indexOf(value) !== -1;
+    },
+    affirm_bt: function() {
+	 
+      this.api.user_role.UpdateAuth(this.select_id, this.updateTreeId).then(res => {
+        if (res.data.code == 200) {
+          this.is_tree_show = !this.is_tree_show;
+          this.$message.success("更新成功");
+        } else {
+          this.$message.error(res.data.message);
+        }
+      });
+      let check = this.$refs[`tree`+this.tabsIndex].getCheckedNodes();
+    },
+	tabs: function() {},
+	check_tree:function(a,b,c){
+		this.updateTreeId[this.tabsIndex]=this.$refs[`tree`+this.tabsIndex].getCheckedKeys()
+	}
+  }
+};
+</script>
+	<style lang="less" scoped="scoped">
+.el-dialog__body {
+  padding: 7px 12px 30px 12px;
+  border-top: 1px solid #ccc;
+}
+
+.filter-tree {
+  margin-top: 12px;
+}
+</style>
+	

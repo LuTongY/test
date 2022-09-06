@@ -1,0 +1,80 @@
+<template>
+  <router-view />
+</template>
+<script>
+import login from "./login/index.vue";
+import { defineComponent } from "vue";
+import { ElMessage } from "element-plus";
+export default {
+  name: "App",
+  components: {
+    login
+  },
+  mounted() {}
+};
+</script>
+
+<style lang="less">
+:root,
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #f6f8f9;
+}
+* {
+  margin: 0;
+  padding: 0;
+  touch-action: none !important;
+}
+#app {
+  height: 100%;
+}
+#nprogress .bar {
+  background: #1d94fa !important;
+}
+.el-table--border,
+.el-table--group {
+  border: 2px solid #ebeef5;
+}
+.el-table td,
+.el-table th {
+  padding: 8px 0;
+}
+.el-overlay,
+.el-vl__viewport {
+  overflow: hidden;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/* 火狐 */
+input {
+  -moz-appearance: textfield;
+}
+.vxe-footer--row{
+	background: #F8F8F9;
+	    color: #000;
+	    font-weight: bolder;
+	    font-size: 16px;
+		
+}
+.vxe-footer--row>td{
+	text-align: center;
+	padding: 8px 0!important;
+}
+*:not(i){
+	font-family: "微软雅黑" !important;
+}
+/deep/ .el-dialog__body{
+	padding: 0 10px;
+}
+.el-header{
+	min-width: 800px;
+}
+</style>

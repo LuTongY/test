@@ -1,0 +1,229 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar ref="AssignToolbar" zoom custom print export >
+        <template #buttons>
+		   <vxe-button status="primary"      @click="searchDate">查询</vxe-button>
+          <vxe-button  @click="DispatchingShow"   v-has="['Dispatching']">批量派工</vxe-button>
+		   <vxe-button  @click="Clear"  v-has="['DelDispatching']">批量删除</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table
+        :data="tableData"
+        highlight-current-row
+        highlight-hover-row
+        height="auto"
+        border="full"
+		show-overflow
+        ref="Assign"
+		:print-config="{}"
+        :filter-config="{'remote': remote}"
+        @filter-change="filterNameMethod"
+        :auto-resize="$store.state.autoResize"
+        :checkbox-config="{checkField: 'checked', trigger: 'row',range: true,highlight: true}"
+      >
+       <vxe-column type="checkbox" width="40" align="center"></vxe-column>
+        <vxe-column field="taskId" title="制造令ID" width="80px" align="center"></vxe-column>
+		 <vxe-column field="workshopName" title="车间"     width="110px" :filters="filters.workshopName"></vxe-column>
+        <vxe-column field="productNo" title="生产订单号"   width="130px"></vxe-column>
+        <vxe-column field="pInvCode" title="成品编码"     width="130px" :visible='false'></vxe-column>
+        <vxe-column field="pInvName" title="成品名称"  width="180px"  :filters="filters.pInvName"></vxe-column>
+		<vxe-column field="orderQty" title="订单数量"   width="85px"></vxe-column>
+		<vxe-column field="invCode" title="物料编码"  width="130px" :visible='false'></vxe-column>
+		<vxe-column field="invName" title="物料名称"    :filters="filters.invName"></vxe-column>
+		<vxe-column field="quantity" title="部件数量"  width="85px"></vxe-column>
+		<vxe-column field="processName" title="工序名称" fixed="right"  width="140px" :filters="filters.processName"></vxe-column>
+		<vxe-column field="produceDate" title="生产日期"  width="110px"></vxe-column>
+		<vxe-column field="assignStatus" title="状态"  width="110px" fixed="right" align="center">
+			<template #default="{ row }">
+			      <el-button   size='mini'  v-if="row.assignStatus==0"  @click="UserDispatchingShow(row)">未派工</el-button>
+			      <el-button type="danger"  size='mini' v-if="row.assignStatus==1" @click="UserDispatchingShow(row)">部分派工</el-button>
+			      <el-button type="success"  size='mini' v-if="row.assignStatus==2" @click="UserDispatchingShow(row)">全部派工</el-button>
+			 </template>
+		</vxe-column>
+      </vxe-table>
+    </el-main>
+    <el-footer>
+       <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+	   <dispatching   ref="dispatching"  @page_list="page_list"   />
+    </el-footer>
+    <Dialog width="600px" title="查询" ref="search" @page_list="page_list"> 
+		<el-form label-width="120px">
+			<el-form-item label="加工日期">
+				 <vxe-input v-model="search.produceDate[0]" placeholder="起始日期" type="date"></vxe-input>
+				 --
+				  <vxe-input v-model="search.produceDate[1]" placeholder="中止日期" type="date"></vxe-input>
+				
+			</el-form-item>
+			<el-form-item label="工作中心">
+				<el-cascader
+				size="small"
+				    v-model="search.workcenterId"
+				    :options="options.WorkGetList"
+				    :props="{ expandTrigger: 'hover',label:'name',value:'id',emitPath:false }"
+				    >
+				</el-cascader>
+			</el-form-item>
+			<el-form-item label="生产订单号">
+				<el-input v-model.trim="search.name" placeholder="请输入" size="small" style="width:350px"></el-input>
+			</el-form-item>
+			<el-form-item label="物料编码">
+				<el-input v-model.trim="search.invCode" placeholder="请输入" size="small" style="width:350px"></el-input>
+			</el-form-item>
+			<el-form-item label="物料名称">
+				<el-input v-model.trim="search.invName" placeholder="请输入" size="small" style="width:350px" ></el-input>
+			</el-form-item>
+		</el-form>
+	</Dialog>
+	<User-Dispatching ref="UserDispatching" @page_list="page_list"/>
+  </el-container>
+ 
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import XEUtils from 'xe-utils'
+import VXETable from 'vxe-table'
+import dispatching from './dispatching'  
+import Dialog from "@/components/TitleSearch/TitleSearch.vue";
+import UserDispatching from "./UserDispatching"
+export default {
+  name: "Assign",
+  components: {
+    page,
+	dispatching,
+	Dialog,
+	UserDispatching
+  },
+  data() {
+    return {
+	  remote:false,
+      search: {produceDate:[]},
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true,
+	  options:{},
+	  filters:{
+		  workshopName:[],
+		  invName:[],
+		  processName:[],
+		  pInvName:[],
+	  }
+    };
+  },
+  created () {
+           this.$nextTick(() => {this.$refs.Assign.connect(this.$refs.AssignToolbar)})
+            },
+  mounted() {
+	this.getWorkshopWorkcenters();
+  },
+  methods: {
+	   searchDate:function(){
+	  	this.$refs.search.SelectShow=true;
+	  },
+	  getWorkshopWorkcenters:function(){
+		  this.api.production.Assign.getWorkshopWorkcenters().then(res => {
+		  		if(res.data.code==200){
+		  			this.options.WorkGetList = res.data.data.workcenters;
+		  		}else{
+		  			this.$message.error(res.data.message)
+		  		}   
+		  });
+	  },
+    page_list: function() {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.production.Assign.GetList(pagesize,page,this.search).then(res => {
+		if(res.data.code==200){
+			this.tableData = res.data.data.rows;
+			this.totalCount = parseInt(res.data.data.totalCount);
+			this.updateNameFilterEvent(this.filters)
+		}else{
+			this.$message.error(res.data.message)
+		}   
+      });
+    },
+	//批量派工弹出框
+    DispatchingShow: function() {
+		let data = this.$refs.Assign.getCheckboxRecords();
+		if (data.length < 1) {this.$message.error("至少选择一个订单");return false}
+        this.$refs.dispatching.is_show = !this.$refs.dispatching.is_show;
+		let ids = [];
+		this.$refs.dispatching.form=[];
+		data.forEach((i, v) => {ids.push(i.id)});
+        this.api.production.Assign.GetInfoBatch(ids).then(res => {
+        		if(res.data.code==200){
+        			this.$refs.dispatching.form=res.data.data
+					this.$refs.dispatching.initialization()
+        		}else{
+        			this.$message.error(res.data.message)
+        		}   
+        });
+    },
+	filterNameMethod:function( column, property, values, datas, filterList){
+		 this.$refs.Assign.clearCheckboxRow()
+	},
+	updateNameFilterEvent:function (columnName) {
+	          const xTable = this.$refs.Assign 
+	              // 修改筛选列表，并默认设置为选中状态
+			  for(let obj in columnName){
+				  const column = xTable.getColumnByField(obj)
+				  xTable.setFilter(column,this.T.el_table_filters(this.tableData,obj))
+				 
+			  }
+			  xTable.updateData()
+	            },
+	//单个派工弹出框
+	UserDispatchingShow:function(row){
+		try{
+			if(this.$store.state.buttons[this.$store.state.tabsMenu_index].indexOf("UserDispatching") == -1){this.$message.error("您无权指派人员"); return false}
+		}catch(err){console.log(err)}
+
+		this.$refs.UserDispatching.is_show=true
+		// 获取已派工记录
+		this.$refs.UserDispatching.form=[{}]
+		this.$refs.UserDispatching.titleData=row
+		this.api.production.Assign.GetInfo(row.id).then(res => {
+				if(res.data.code==200){
+					this.$refs.UserDispatching.getDate=res.data.data
+					this.$refs.UserDispatching.remainQty=parseInt(res.data.data.remainQty)
+				}else{
+					this.$message.error(res.data.message)
+				}   
+		});
+	},
+	//批量清空
+	Clear:function(){
+		let data = this.$refs.Assign.getCheckboxRecords();
+		if (data.length < 1) {this.$message.error("至少选择一个订单");return false}
+		 let ids = [];
+		 data.forEach((i, v) => {ids.push(i.id)});
+		 this.$confirm("此操作将删除该订单所有派工数据, 是否继续?", "提示", {
+		   confirmButtonText: "确定",
+		   cancelButtonText: "取消",
+		   type: "warning"
+		 }).then(() => {
+		   this.api.production.Assign.Clear(ids).then(res => {
+					if(res.data.code==200){
+						this.page_list();
+						this.$message.success("删除成功");
+					}else{
+						this.$message.error(res.data.message);
+					}
+		     
+		   });
+		 });
+	}
+  }
+};
+</script>
+<style lang="less" scoped>
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+/deep/ .el-input__suffix-inner i{
+	height: 32px;
+}
+</style>

@@ -1,0 +1,134 @@
+<template>
+	<el-container>
+		<el-header>
+			<vxe-toolbar ref="PackAssignToolbar" custom print export>
+				<template #buttons>
+					<vxe-input v-model.trim="search.soNo" placeholder="销售订单号"></vxe-input>
+					<vxe-button status="primary" @click="page_list">搜索</vxe-button>
+					<vxe-button v-has="['allocation']" @click="allocation">分配人员物料</vxe-button>
+					<vxe-button v-has="['del']" @click="del">清空派工数据</vxe-button>
+				</template>
+			</vxe-toolbar>
+		</el-header>
+		<el-main>
+			<vxe-table :data="tableData" 
+			     highlight-current-row 
+			     highlight-hover-row 
+			     height="auto" 
+			     border="full" 
+			     :empty-text="isSearch?'无查询数据':'请先搜索'"
+				 ref="PackAssign" 
+				 keep-source 
+				 :print-config="{}" 
+				 :auto-resize="$store.state.autoResize"
+				 :radio-config="{labelField: 'name', trigger: 'row'}">
+				<vxe-column type="radio" width="60" align="center"></vxe-column>
+				<vxe-table-column field="soNo" title="销售订单号" width="120px" align="center"></vxe-table-column>
+				<vxe-table-column field="soSeq" title="行号" width="70px" align="center"></vxe-table-column>
+				<vxe-table-column field="series" title="系列" width="160px" align="center"></vxe-table-column>
+				<vxe-table-column field="orderQty" title="订单数量" width="100px" align="center"></vxe-table-column>
+				<vxe-table-column field="invCode" title="成品编码" width="150px" :visible='false'></vxe-table-column>
+				<vxe-table-column field="invName" title="成品名称" width="220px"></vxe-table-column>
+				<vxe-table-column field="produceDate" title="计划日期" width="150px" align="center"></vxe-table-column>
+				<vxe-table-column field="quantity" title="计划数量" width="100px" align="center"></vxe-table-column>
+				<vxe-table-column field="orderQualifyQty" title="入库数量" width="100px" align="center"></vxe-table-column>
+				<vxe-table-column field="workcenterName" title="工作中心" width="150px" align="center"></vxe-table-column>
+				<vxe-table-column field="status" title="状态" width="120px" align="center">
+					<template #default='{ row }'>
+						<vxe-button status="success" size="mini" v-if="row.status=='已生成'">{{row.status}}</vxe-button>
+						<vxe-button size="mini" v-else>{{row.status}}</vxe-button>
+					</template>
+				</vxe-table-column>
+			</vxe-table>
+		</el-main>
+		<el-footer>
+			<page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+		</el-footer>
+		<allocation ref='allocation'  title="分配物料" width='1200px' />
+	</el-container>
+</template>
+<script>
+	import page from "@/components/page/page.vue";
+	import allocation from "./allocation.vue";
+	export default {
+		name: "PackAssign",
+		components: {
+			page,
+			allocation,
+		},
+		data() {
+			return {
+				search: {},
+				isSearch:false,
+				totalCount: 0,
+				tableData: [],
+				select_id: "",
+				auto: true,
+				WorkGetList: [],
+				form: {},
+			};
+		},
+		created() {
+			this.$nextTick(() => {
+				this.$refs.PackAssign.connect(this.$refs.PackAssignToolbar)
+			})
+		},
+		mounted() {
+			this.page_list();
+		},
+		methods: {
+			page_list: function() {
+				this.isSearch=true;
+				let pagesize = this.$refs.page_data.page_size;
+				let page = this.$refs.page_data.page;
+				this.api.production.PackTask.GetList(pagesize, page, this.search).then(res => {
+					if (res.data.code == 200) {
+						this.tableData = res.data.data.rows;
+						this.totalCount = parseInt(res.data.data.totalCount);
+					} else {
+						this.$message.error(res.data.message);
+					}
+				});
+			},
+			allocation:function(){
+				let data=this.$refs.PackAssign.getRadioRecord();
+				if(!data){this.$message.error("请选择订单"); return false}
+				this.$refs.allocation.is_show=true;
+				this.$refs.allocation.id=data.id;
+				this.$refs.allocation.GetInfo(data.id);
+			},
+			del:function(){
+				let data=this.$refs.PackAssign.getRadioRecord();
+				if(!data){this.$message.error("请选择订单"); return false}
+				
+				this.$confirm("此操作将清空该订单派工数据, 是否继续?", "提示", {
+					confirmButtonText: "确定",
+					cancelButtonText: "取消",
+					type: "warning"
+				}).then(() => {
+				  this.api.production.PackAssign.Clear(data.id).then((res)=>{
+					if(res.data.code==200){
+						this.$message.success(res.data.message)
+					}else{
+						this.$message.error(res.data.message)
+					}
+				})
+				});
+				
+			}
+			
+		}
+	};
+</script>
+<style lang="less" scoped="scoped">
+	.el-main {
+		padding: 0 20px 20px 20px;
+	}
+
+	/deep/ .el-input__suffix-inner i {
+		height: 32px;
+	}
+	/deep/ .el-tag {
+	  margin:0 4px;
+	  }
+</style>

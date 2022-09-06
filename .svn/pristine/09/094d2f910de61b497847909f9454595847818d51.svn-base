@@ -1,0 +1,255 @@
+<template>
+ <div v-dialogdrag>
+      <el-dialog title="流转卡报工" v-model="is_show" width="1250px">
+ 		<el-container>
+ 			<el-main>
+ 				<el-row style="height: 100%;" class="flowCardTitle">
+ 					<el-col :span="10"  style="border-right: 1px solid #ccc;padding-right: 10px;margin-right: 10px;height: 600px;">
+							<el-row>
+								<el-col :span="12">
+									<label for="">流转卡ID:</label>
+									<input type="text" readonly :value="getData.id" style="width: 80px;">
+								</el-col>
+								<el-col :span="12">
+									<label for="">制造令ID:</label>
+									<input type="text" readonly :value="getData.taskId" style="width: 80px;">
+								</el-col>
+							</el-row>
+							<el-row>
+							   <el-col :span="12">
+								   <label for="">生产订单号:</label>
+								   <input type="text" readonly :value="getData.productNo" style="width:130px;">
+							   </el-col>
+								<el-col :span="12">
+									<label for="">本卡数量:</label>
+									<input type="text" readonly :value="getData.quantity" style="width: 80px;">
+								</el-col>
+							</el-row>
+							<el-row>
+								<el-col :span="24">
+									<label for="">报工物料:</label>
+									<input type="text" readonly :value="getData.isComponent==1?getData.invName:getData.pInvName" style="width: 70%;">
+								</el-col>
+							</el-row>
+							<el-row style="padding-bottom:0 ;">
+								<el-col :span="24" style="background-color: #DEDEDE;padding: 6px 0;">
+									<p style="text-align: center;font-size: 16px;color: #000000;font-weight: 700;">工序路线</p>
+								</el-col>
+							</el-row>
+							<div style="height: 463px;border: 1px solid #ccc;line-height: 40px;">
+							  <el-scrollbar height="463px">
+								<div style="display: flex;width: 100%;height: 40px;" class="ProcessRouteList" v-for="(item,index) in getData.taskProcessList" :key='item.id'>
+									<div style="flex:2">
+									   <span style="margin-left:5px ;">{{item.workshopName}}</span>
+									</div>
+									<div style="flex:2">
+									   <span style="margin-left:5px ;">{{item.processName}}</span>
+									</div>
+									<div style="flex:2">
+										<el-badge :value="item.receiveQty" class="item" type="danger" >
+											   <el-button v-if="item.canReceive>0"    size="mini" style="padding: 0 30px;" type="primary" round @click="()=>{tabsName='report';row=item;receiveQtyForm.quantity=item.canReceive}">收单</el-button>
+											   <el-button v-if="item.canReceive==0"   size="mini" style="padding: 0 30px;" type="info" round>收单</el-button>
+										</el-badge>
+										
+									</div>
+									<div style="flex:2">		
+										<el-badge :value="item.reportedQty" class="item" type="danger" :max="1000000"  v-if="parseInt(item.reportedQty)<parseInt(getData.quantity)">
+										    <el-button v-if="item.canReport>0"  size="mini" style="padding: 0 30px;" type="primary" round @click="report(item)">报工</el-button>
+											<el-button v-if="item.canReport==0"  size="mini" style="padding: 0 30px;" type="info"   round >报工</el-button>
+										 </el-badge>
+										 <el-button v-else size="mini" style="padding: 0 30px;" type="success" round @click="report(item)">完成</el-button>
+									</div>
+								</div>
+							
+								 </el-scrollbar>
+							</div>
+ 					</el-col>
+ 					<el-col :span="13" style="height: 600px;">
+ 					   <div style="height: calc(100% - 2px);line-height: 40px;font-weight: 600;font-size: 16px;border: 1px solid #e6e6e6;">
+						<el-empty description="请点击左侧收单或报工" v-show="!tabsName"></el-empty>
+						 <template v-if="tabsName == 'receive'">
+ 					       <div style="text-align: center;background-color: #DEDEDE;color: #000000;">报工{{reporName}}</div>
+							  <div style="height: calc(100% - 40px);">
+							     <vxe-table
+								 empty-text="没有查询到数据,请检查是否派工"
+								 :data="reportList"
+							      highlight-current-row
+							      highlight-hover-row
+							      height="auto"
+							      border="full"
+							      ref="Report"
+								  :auto-resize="$store.state.autoResize"
+								  show-footer	
+								  :footer-method="GetfooterData"
+							      show-overflow>
+								   <vxe-column title="加工人"   field="staffName"></vxe-column>
+								   <vxe-column title="加工日期" field="produceDate" width="110px"></vxe-column>
+								   <vxe-column title="已派数量" field="quantity"></vxe-column>
+								   <vxe-column title="完成数量" field="completeQty"></vxe-column>
+								    <vxe-column title="可报数量" field="reportableQty"></vxe-column>
+								   <vxe-column title="报工数量" width="95px">
+									   <template #default="{ row,rowIndex}">
+										   <vxe-input v-if="parseInt(row.completeQty)<parseInt(getData.quantity) && moment().format('YYYY-MM-DD')==row.produceDate" v-model="row.number" :max="getData.quantity" type="number" min="1"></vxe-input>
+										   <span v-else>{{row.completeQty}}</span>
+									   </template>
+								   </vxe-column>
+								   <vxe-column title="操作"    align="center" width="115px">
+									   <template #default="{ row }">
+										   <vxe-button  v-if="moment().format('YYYY-MM-DD')==row.produceDate && getData.quantity > row.completeQty" size="mini"  @click="SaveCompleteQty(row)">报工</vxe-button>
+										   <vxe-button  v-else-if="getData.quantity==row.completeQty"  status="success" disabled>已完成</vxe-button>
+										   <vxe-button v-else  status="info" content="非报工日期" disabled size="mini"></vxe-button>
+									   </template>
+								   </vxe-column>
+							   </vxe-table>
+							  </div>
+							</template>
+							<template v-if="tabsName == 'report'">
+							  <div  style="text-align: center;background-color: #DEDEDE;color: #000000;">收单[{{row.processName}}]</div>
+							  <div>
+								  <el-row style="border: 1px solid #e6e6e6;">
+									  <el-col :span="4" style="text-align: center;">
+										   <label for="">收单数量</label>
+									  </el-col>
+									  <el-col :span="15" style="border-left: 1px solid #e6e6e6;border-right: 1px solid #e6e6e6;">				 
+										  <el-input style="padding: 0 10px;width: 370px;" v-model="receiveQtyForm.quantity"></el-input>
+									  </el-col>
+									  <el-col :span="4" style="text-align: center;">
+										  <el-button type="primary" size="mini" @click="Receive">确认</el-button>
+									  </el-col>
+								  </el-row>		  
+							  </div>
+						</template>
+ 					    </div>
+ 					</el-col>
+ 				</el-row>
+ 				
+ 			</el-main>
+ 		</el-container>
+ 	  </el-dialog>
+ </div>
+</template>
+<script>
+export default {
+  components: {},
+  data() {
+    return {
+	  id:'',
+      is_show: false,
+      getData:[],
+	  reporName:'',
+	  reportList:[],
+	  receiveQtyForm:{},
+	  visible:false,
+	  tabsName:'',
+	  row:{},
+	  SaveCompleteId:'',
+	  footerSumName:['quantity'],
+	  taskProcessId:'',  //流转卡工序ID
+    };
+  },
+  mounted() {},
+  methods: {
+	  initialize:function(){
+		  this.getData=[];
+		  this.reporName="";
+		  this.reportList=[];
+		  this.SaveCompleteId='';
+	  },
+	  Receive:function(){
+		  if(!this.receiveQtyForm.quantity){this.$message.error('请输入接收数量');return false}
+		  let data={id:this.row.id,quantity:this.receiveQtyForm.quantity,}
+		  this.api.production.Report.Receive(data).then((res)=>{
+			  if(res.data.code==200){
+				  this.$message.success(res.data.message);
+				  this.receiveQtyForm.quantity=0;
+				  this.$emit('GetInfo',this.id);
+			  }
+		  })
+	  },
+       report:function(row){
+		   let data={id:this.getData.id,taskProcessId:row.id,}
+		   this.tabsName='receive';
+		   this.reporName="["+row.processName+"]";
+		   this.GetSendList(data);
+		  
+	   },
+	   SaveCompleteQty:function(row){ 
+		   console.log(row);
+		   let data={id:this.taskProcessId,assignId:row.assignId,staffNo:row.staffNo,quantity:row.number};
+		   let obj={
+			   'id':this.taskProcessId,
+			   'data':[data]
+		   }
+		   if(parseInt(row.number)<1){this.$message.error("请输入报工数量"); return false;}
+		   this.api.production.Report.SaveCompleteQty(obj).then(res=>{
+			   if(res.data.code==200){
+			   	   this.GetSendList(this.SaveCompleteId);
+				   this.$message.success(res.data.message);
+				   let index=this.getData.taskProcessList.findIndex((v)=>{return v.id==this.SaveCompleteId.taskProcessId});
+				   this.getData.taskProcessList[index].reportedQty = parseInt(this.getData.taskProcessList[index].reportedQty)+parseInt(row.number);
+			   }
+		   })
+	   },
+	   GetSendList:function(data){
+		   this.taskProcessId=data.taskProcessId
+		   this.api.production.Report.GetSendList({id:data.taskProcessId}).then(res=>{
+		   			   if(res.data.code==200){
+		   				   this.reportList=res.data.data.assignList
+		   				   this.SaveCompleteId=data
+		   			   }
+		   }) 
+	   },
+	   GetfooterData:function ({ columns, data }) {
+	   					   this.footerData=[]
+	   					   let sumObj={}
+	   					   let arr=[]
+	   					   for(let i=0;i<this.footerSumName.length;i++){
+	   						   sumObj[this.footerSumName[i]]=0;
+	   					   }
+	   					   data.forEach((item,index)=>{
+	   						   for(let obj in sumObj){
+	   							   if(!isNaN(item[obj]) && item.hasOwnProperty(obj)){
+	   								    sumObj[obj] += parseInt(item[obj])
+	   							   } 
+	   						   }
+	   					   })
+	   					   columns.forEach((item,index)=>{
+	   						   if(index==0){arr.push('合计')}
+	   						   else if(this.footerSumName.indexOf(item.property)>-1){
+	   							   arr.push(sumObj[item.property])
+	   						   }
+	   						   else{arr.push("-")}
+	   					   })
+	   					   this.footerData.push(arr)
+	   				              return this.footerData
+	   				            },
+  }
+};
+</script>
+<style scoped>
+	/deep/.el-dialog__body,
+	/deep/.el-main{
+		padding-top: 0;
+	}
+	/deep/.el-container{
+		height: 600px;
+	}
+	/deep/.flowCardTitle label{
+		display: inline-block;
+		width: 80px;
+	}
+	/deep/.flowCardTitle input{
+		border: 1px solid #ccc;
+		padding: 4px;
+	}
+	/deep/.flowCardTitle .el-row{
+		padding: 3px 0;
+	}
+	.ProcessRouteList:not(:last-child){
+		border-bottom: 1px solid #ccc;
+	}
+	/deep/.el-badge__content.is-fixed{
+		top: 10px;
+		right: calc(8px + var(--el-badge-size)/ 2);
+	}
+</style>

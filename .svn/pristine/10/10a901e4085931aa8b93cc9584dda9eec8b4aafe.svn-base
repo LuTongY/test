@@ -1,0 +1,926 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar ref="dailyStatementToolbar" >
+        <template #buttons>
+         <!-- <vxe-input v-model.trim="search.name" placeholder=""></vxe-input> -->
+		 <vxe-input v-model="search.reportDate[0]" placeholder="起始日期" type="date"  transfer></vxe-input>
+		 <span>---</span>
+		 <vxe-input v-model="search.reportDate[1]" placeholder="截至日期" type="date"  transfer></vxe-input>
+		   <el-select v-model="changeSelect" multiple  collapse-tags  placeholder="选择部门" size="small">
+		     <el-option
+		       v-for="item in selectData"
+		       :key="item.value"
+		       :label="item.label"
+		       :value="item.value" 
+		     >
+		     </el-option>
+		   </el-select>
+          <vxe-button status="primary" @click="page_list">搜索</vxe-button>
+		   <vxe-button status="primary" v-has="['record']" @click="recordBtn">录入</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+	  <div style="height: 98%;width: 100%;border: 1px solid #ccc;" v-if="iData.listData">
+	   <el-empty description="暂无数据" ></el-empty>
+	  </div>
+	   <el-scrollbar v-if="!iData.listData">
+		<div class="warpper" >
+			<table class="table" >
+			  <thead>
+				<tr class="department" >
+					<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+						{{item.department}}
+					</td>
+				</tr>
+				<tr class="user">
+					<template  v-for="(userItem,userIndex) in Data.listData">
+						<template v-for="(user,Index) in userItem.users">
+						  <td class="username" >
+							<p>{{user.name}}</p>
+						  </td>
+						</template>
+					</template>
+					
+				</tr>
+			</thead>
+				<!-- 收到询盘邮件情况 -->
+			<tbody>
+				<tr class="item inquiry-eamil" @click="ShowItem.inquiryMail=!ShowItem.inquiryMail">
+					<td :colspan="colspan" >
+						<i :class="ShowItem.inquiryMail?'vxe-icon--minus':'vxe-icon--plus'"></i>
+						<span>收到询盘邮件情况</span>
+					</td>
+				</tr>
+				<tr v-show="ShowItem.inquiryMail">
+					<template  v-for="(inquiryMailItem,inquiryMailIndex) in Data.listData">
+					 <td v-for="(inquiryMail,index) in inquiryMailItem.users" class="child-item-td">
+						<table class="child-table">
+							<thead>
+								<td>客户名称</td>
+								<td>询盘数量</td>			
+							</thead>
+							<tbody>
+								<tr v-for="(ChildItem,childitemIndex) in inquiryMail.inquiryMail">
+									<td style="text-align: left;">{{ChildItem.customer}}</td>
+									<td>{{ChildItem.quantity}}</td>
+								</tr>
+							</tbody>
+							<tfoot>
+									<tr>
+										<td>个人合计</td>
+										<td>{{totalSumAll(inquiryMail.inquiryMail,'quantity')}}</td>
+									</tr>		
+							</tfoot>
+						</table>
+					 </td>
+					</template>
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.inquiryMail">
+					<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+						{{'部门小计:'+ item.stat.inquiryMail.quantity}}
+					</td>
+					
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.inquiryMail">
+					<td :colspan="colspan">
+						{{'总计:' + total('inquiryMail','quantity') }}
+					</td>	
+				</tr>
+				
+				
+				<!-- 发出报价邮件情况 -->
+				
+				<tr class="item quotation-email" @click="ShowItem.quotationMail=!ShowItem.quotationMail">
+					<td :colspan="colspan" >
+						<i :class="ShowItem.quotationMail?'vxe-icon--minus':'vxe-icon--plus'"></i>
+						<span>发出报价邮件情况</span>
+					</td>
+				</tr>
+				<tr v-show="ShowItem.quotationMail">
+					<template  v-for="(quotationMailItem,quotationMailIndex) in Data.listData">
+					 <td v-for="(quotationMail,index) in quotationMailItem.users" class="child-item-td">
+						<table class="child-table">
+							<thead>
+								<td>客户名称</td>
+								<td>发出报价数量</td>
+								
+							</thead>
+							<tbody>
+								<tr v-for="(ChildItem,childitemIndex) in quotationMail.quotationMail">
+									<td style="text-align: left;">{{ChildItem.customer}}</td>
+									<td>{{ChildItem.quantity}}</td>		
+								</tr>
+							</tbody>
+							<tfoot>
+									<tr>
+										<td>个人合计</td>
+										<td>{{totalSumAll(quotationMail.quotationMail,'quantity')}}</td>
+									</tr>		
+							</tfoot>
+						</table>
+					 </td>
+					</template>
+				</tr>
+			<tr class="subtotal" v-show="ShowItem.quotationMail">
+				<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+					{{'部门小计:'+ item.stat.quotationMail.quantity}}
+				</td>
+				
+			</tr>
+			<tr class="subtotal" v-show="ShowItem.quotationMail">
+				<td :colspan="colspan">
+					{{'总计:' + total('quotationMail','quantity') }}
+				</td>	
+			</tr>
+				
+				<!-- 推荐邮件情况 -->
+				
+				<tr class="item Recommend-email" @click="ShowItem.recommendMail=!ShowItem.recommendMail">
+					<td :colspan="colspan" >
+						<i :class="ShowItem.recommendMail?'vxe-icon--minus':'vxe-icon--plus'"></i>
+						<span>推荐邮件情况</span>
+					</td>
+				</tr>
+				<tr v-show="ShowItem.recommendMail">
+					<template  v-for="(recommendMailItem,recommendMailIndex) in Data.listData">
+					 <td v-for="(recommendMail,index) in recommendMailItem.users" class="child-item-td">
+						<table class="child-table">
+							<thead>
+								<td>推荐的品类</td>
+								<td>推荐信数量</td>		
+							</thead>
+							<tbody>
+								<tr v-for="(ChildItem,childitemIndex) in recommendMail.recommendMail">
+									<td>{{ChildItem.category}}</td>
+									<td>{{ChildItem.quantity}}</td>				
+								</tr>
+							</tbody>
+							<tfoot>
+									<tr>
+										<td>个人合计</td>
+										<td>{{totalSumAll(recommendMail.recommendMail,'quantity')}}</td>
+									</tr>		
+							</tfoot>
+						</table>
+					 </td>
+					</template>
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.recommendMail">
+					<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+						{{'部门小计:'+ item.stat.recommendMail.quantity}}
+					</td>
+					
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.recommendMail">
+					<td :colspan="colspan">
+						{{'总计:' + total('recommendMail','quantity') }}
+					</td>	
+				</tr>
+				
+				<!-- 正常业务往来邮件发出数量 -->
+				
+				<tr class="item normalEmail-email" @click="ShowItem.bussMailNum=!ShowItem.bussMailNum">
+					<td :colspan="colspan" >
+						<i :class="ShowItem.bussMailNum?'vxe-icon--minus':'vxe-icon--plus'"></i>
+						<span>正常业务往来邮件发出数量</span>
+						<el-tooltip content="如合同确认,订单细节确认,验货,出货等" placement="top">
+						   <i class="vxe-icon--question"></i>
+						</el-tooltip>
+					</td>
+				</tr>
+				<tr v-show="ShowItem.bussMailNum">
+					<template  v-for="(otherItem,otherIndex) in Data.listData">
+					 <td v-for="(otherMail,index) in otherItem.users" class="child-item-td">
+						<table class="child-table">
+							<thead>
+								<td>正常业务往来邮件发出数量</td>
+							</thead>
+							<tbody>
+								<tr v-for="(ChildItem,childitemIndex) in otherMail.otherMail">
+									<td>{{ChildItem.bussMailNum}}</td>
+								</tr>
+							</tbody>
+							
+						</table>
+					 </td>
+					</template>
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.bussMailNum">
+					<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+						{{'部门小计:'+ item.stat.otherMail.bussMailNum}}
+					</td>
+					
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.bussMailNum">
+					<td :colspan="colspan">
+						{{'总计:' + total('otherMail','bussMailNum') }}
+					</td>	
+				</tr>
+				
+				<!-- 合计每天发出邮件数量 -->
+				
+				<tr class="item sum-email" @click="ShowItem.totalMailNum=!ShowItem.totalMailNum">
+					<td :colspan="colspan" >
+						<i :class="ShowItem.totalMailNum?'vxe-icon--minus':'vxe-icon--plus'"></i>
+						<span>合计每天发出邮件数量</span>
+					</td>
+				</tr>
+				<tr v-show="ShowItem.totalMailNum">
+					<template  v-for="(otherItem,otherIndex) in Data.listData">
+					 <td v-for="(otherMail,index) in otherItem.users" class="child-item-td">
+						<table class="child-table">
+							<thead>
+								<td>合计每天发出邮件数量</td>
+							</thead>
+							<tbody>
+								<tr v-for="(ChildItem,childitemIndex) in otherMail.otherMail">
+									<td>{{ChildItem.totalMailNum}}</td>
+								</tr>
+							</tbody>
+						</table>
+					 </td>
+					</template>
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.totalMailNum">
+					<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+						{{'部门小计:'+ item.stat.otherMail.totalMailNum}}
+					</td>
+					
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.totalMailNum">
+					<td :colspan="colspan">
+						{{'总计:' + total('otherMail','totalMailNum') }}
+					</td>	
+				</tr>
+				
+				<!-- 电话沟通情况 -->
+				
+				<tr class="item telephone-communication" @click="ShowItem.telContact=!ShowItem.telContact">
+					<td :colspan="colspan" >
+						<i :class="ShowItem.telContact?'vxe-icon--minus':'vxe-icon--plus'"></i>
+						<span>电话沟通情况</span>
+					</td>
+				</tr>
+				<tr v-show="ShowItem.telContact">
+					<template  v-for="(telContactItem,telContactIndex) in Data.listData">
+					 <td v-for="(telContact,index) in telContactItem.users" class="child-item-td">
+						<table class="child-table">
+							<thead>
+								<td>客户名称</td>
+								<td>拨出电话个数</td>		
+							</thead>
+							<tbody>
+								<tr v-for="(ChildItem,childitemIndex) in telContact.telContact">
+									<td style="text-align: left;">{{ChildItem.customer}}</td>
+									<td>{{ChildItem.quantity}}</td>
+									
+								</tr>
+							</tbody>
+							<tfoot>
+									<tr>
+										<td>个人合计</td>
+										<td>{{totalSumAll(telContact.telContact,'quantity')}}</td>
+									</tr>		
+							</tfoot>
+						</table>
+					 </td>
+					</template>
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.telContact">
+					<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+						{{'部门小计:'+ item.stat.telContact.quantity}}
+					</td>
+					
+				</tr>
+				<tr class="subtotal" v-show="ShowItem.telContact">
+					<td :colspan="colspan">
+						{{'总计:' + total('telContact','quantity') }}
+					</td>	
+				</tr>
+
+            <!-- 其他社媒沟通情况	 -->
+             
+			 <tr class="item telephone-communication" @click="ShowItem.media=!ShowItem.media">
+			 	<td :colspan="colspan" >
+			 		<i :class="ShowItem.media?'vxe-icon--minus':'vxe-icon--plus'"></i>
+			 		<span>其他社媒沟通情况</span>
+			 	</td>
+			 </tr>
+			 <tr v-show="ShowItem.media">
+			 	<template  v-for="(mediaItem,mediaIndex) in Data.listData">
+			 	 <td v-for="(media,index) in mediaItem.users" class="child-item-td">
+			 		<table class="child-table">
+			 			<thead>
+			 				<td>客户名称</td>
+							<td>客户个数</td>
+			 			</thead>
+			 			<tbody>
+			 				<tr v-for="(ChildItem,childitemIndex) in media.media">	
+			 					<td style="text-align: left;">{{ChildItem.customer}}</td>
+								<td>{{ChildItem.quantity}}</td>
+			 				</tr>
+			 			</tbody>
+						<tfoot>
+								<tr>
+									<td>个人合计</td>
+									<td>{{totalSumAll(media.media,'quantity')}}</td>
+								</tr>		
+						</tfoot>
+			 		</table>
+			 	 </td>
+			 	</template>
+			 </tr>
+			 <tr class="subtotal" v-show="ShowItem.media">
+			 	<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+			 		{{'部门小计:'+ item.stat.media.quantity}}
+			 	</td>
+			 	
+			 </tr>
+			 <tr class="subtotal" v-show="ShowItem.media">
+			 	<td :colspan="colspan">
+			 		{{'总计:' + total('media','quantity') }}
+			 	</td>	
+			 </tr>
+			 
+			 
+			 <!-- 开立U8合同情况	-->
+	 
+			 <tr class="item contract" @click="ShowItem.u8Contract=!ShowItem.u8Contract">
+			 	<td :colspan="colspan" >
+			 		<i :class="ShowItem.u8Contract?'vxe-icon--minus':'vxe-icon--plus'"></i>
+			 		<span>开立U8合同情况</span>
+			 	</td>
+			 </tr>
+			 <tr v-show="ShowItem.u8Contract">
+			 	<template  v-for="(u8ContractItem,u8ContractIndex) in Data.listData">
+			 	 <td v-for="(u8Contract,index) in u8ContractItem.users" class="child-item-td">
+			 		<table class="child-table">
+			 			<thead>
+							<td style="width:'35%'">客户名称</td>
+							<td style="min-width:40px;width: 40px;">个数</td>
+							<td style="width:'20%'">数量</td>
+							<td style="width:'25%'">金额($)</td>
+			 			</thead>
+			 			<tbody>
+			 				<tr v-for="(ChildItem,childitemIndex) in u8Contract.u8Contract">
+								<td style="text-align: left;">{{ChildItem.customer}}</td>
+			 					<td style="min-width:40px;width: 40px;">{{ChildItem.quantity}}</td>	
+								<td>{{ChildItem.number}}</td>
+								<td>{{ChildItem.amount}}</td>
+			 				</tr>
+			 			</tbody>
+						<tfoot>
+								<tr>
+									<td>个人合计</td>
+									<td>{{totalSumAll(u8Contract.u8Contract,'quantity')}}</td>
+									<td>{{totalSumAll(u8Contract.u8Contract,'number')}}</td>
+									<td>{{totalSumAll(u8Contract.u8Contract,'amount')}}</td>
+								</tr>		
+						</tfoot>
+			 		</table>
+			 	 </td>
+			 	</template>
+			 </tr>
+			 <tr class="subtotal" v-show="ShowItem.u8Contract">
+			 	<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+					<span style="padding-right:8px;">部门小计</span>
+					<span style="padding: 0 8px;">个数:{{item.stat.u8Contract.quantity}}</span>
+					<span style="padding: 0 8px;">数量:{{item.stat.u8Contract.number}}</span>
+					<span style="padding: 0 8px;">金额($):{{item.stat.u8Contract.amount}}</span>
+			 	</td>
+			 </tr>
+			 <tr class="subtotal" v-show="ShowItem.u8Contract">
+			 	<td :colspan="colspan">
+					<span style="padding-right:8px;">部门总计</span>
+					<span style="padding: 0 8px;">个数:{{total('u8Contract',['quantity','number','amount']).quantity}}</span>
+					<span style="padding: 0 8px;">数量:{{total('u8Contract',['quantity','number','amount']).number}}</span>
+					<span style="padding: 0 8px;">金额($):{{total('u8Contract',['quantity','number','amount']).amount}}</span>
+			 	</td>	
+			 </tr>
+
+         <!-- 开立U8销售订单情况 -->
+
+            <tr class="item salesOrderList" @click="ShowItem.u8SaleOrder=!ShowItem.u8SaleOrder">
+            	<td :colspan="colspan" >
+            		<i :class="ShowItem.u8SaleOrder?'vxe-icon--minus':'vxe-icon--plus'"></i>
+            		<span>开立U8销售订单情况</span>
+            	</td>
+            </tr>
+            <tr v-show="ShowItem.u8SaleOrder">
+            	<template  v-for="(u8SaleOrderItem,u8SaleOrderIndex) in Data.listData">
+            	 <td v-for="(u8SaleOrder,index) in u8SaleOrderItem.users" class="child-item-td">
+            		<table class="child-table">
+            			<thead>
+							            <td style="width:'35%';">客户名称</td>
+            							<td >商品数量</td>
+            							<td >金额($)</td>
+            			</thead>
+            			<tbody>
+            				<tr v-for="(ChildItem,childitemIndex) in u8SaleOrder.u8SaleOrder">
+								<td style="text-align: left;">{{ChildItem.customer}}</td>
+            					<td style="min-width:60px;width: 60px;">{{ChildItem.number}}</td>         					
+            					<td>{{ChildItem.amount}}</td>
+            				</tr>
+            			</tbody>
+						<tfoot>
+								<tr>
+									<td>个人合计</td>
+									<td>{{totalSumAll(u8SaleOrder.u8SaleOrder,'number')}}</td>
+									<td>{{totalSumAll(u8SaleOrder.u8SaleOrder,'amount')}}</td>
+								</tr>		
+						</tfoot>
+            		</table>
+            	 </td>
+            	</template>
+            </tr>
+            <tr class="subtotal" v-show="ShowItem.u8SaleOrder">
+            	<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+            		<span style="padding-right:8px;">部门小计</span>
+            		<span style="padding: 0 8px;">商品数量:{{item.stat.u8SaleOrder.number}}</span>
+            		<span style="padding: 0 8px;">金额($):{{item.stat.u8SaleOrder.amount}}</span>
+            	</td>
+            </tr>
+			<tr class="subtotal" v-show="ShowItem.u8SaleOrder">
+				<td :colspan="colspan">
+								<span style="padding-right:8px;">部门总计</span>
+								<span style="padding: 0 8px;">商品数量:{{total('u8SaleOrder',['number','quantity','amount']).number}}</span>
+								<span style="padding: 0 8px;">金额($):{{total('u8SaleOrder',['number','quantity','amount']).amount}}</span>
+				</td>	
+			</tr>
+			
+			<!-- 出货情况 -->
+			
+			<tr class="item sellList" @click="ShowItem.dispatch=!ShowItem.dispatch">
+				<td :colspan="colspan" >
+					<i :class="ShowItem.dispatch?'vxe-icon--minus':'vxe-icon--plus'"></i>
+					<span>出货情况</span>
+				</td>
+			</tr>
+			<tr v-show="ShowItem.dispatch">
+				<template  v-for="(dispatchItem,dispatchIndex) in Data.listData">
+				 <td v-for="(dispatch,index) in dispatchItem.users" class="child-item-td">
+					<table class="child-table">
+						<thead>
+							            <td style="width:'35%'">客户名称</td>					            
+										<td style="width:'20%'">商品数量</td>
+										<td style="width:'25%'">金额($)</td>
+						</thead>
+						<tbody>
+							<tr v-for="(ChildItem,childitemIndex) in dispatch.dispatch">
+								<td style="text-align: left;">{{ChildItem.customer}}</td>
+								<td style="min-width:30px;width: 30px;">{{ChildItem.number}}</td>		
+								<td>{{ChildItem.amount}}</td>
+							</tr>
+						</tbody>
+						<tfoot>
+								<tr>
+									<td>个人合计</td>
+									<td>{{totalSumAll(dispatch.dispatch,'number')}}</td>
+									<td>{{totalSumAll(dispatch.dispatch,'amount')}}</td>
+								</tr>		
+						</tfoot>
+					</table>
+				 </td>
+				</template>
+			</tr>
+			<tr class="subtotal" v-show="ShowItem.dispatch">
+				<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+					<span style="padding-right:8px;">部门小计</span>
+					<span style="padding: 0 8px;">商品数量:{{item.stat.dispatch.number}}</span>
+					<span style="padding: 0 8px;">金额($):{{item.stat.dispatch.amount}}</span>
+				</td>
+			</tr>
+			<tr class="subtotal" v-show="ShowItem.dispatch">
+				<td :colspan="colspan">
+								<span style="padding-right:8px;">部门总计</span>
+								<span style="padding: 0 8px;">商品数量:{{total('dispatch',['number','quantity','amount']).number}}</span>
+								<span style="padding: 0 8px;">金额($):{{total('dispatch',['number','quantity','amount']).amount}}</span>
+				</td>	
+			</tr>
+			
+		  <!-- 收款情况 -->
+		  
+		  <tr class="item receiptList" @click="ShowItem.receiptBill=!ShowItem.receiptBill">
+		  	<td :colspan="colspan" >
+		  		<i :class="ShowItem.receiptBill?'vxe-icon--minus':'vxe-icon--plus'"></i>
+		  		<span>收款情况</span>
+		  	</td>
+		  </tr>
+		  <tr v-show="ShowItem.receiptBill">
+		  	<template  v-for="(receiptBillItem,receiptBillIndex) in Data.listData">
+		  	 <td v-for="(receiptBill,index) in receiptBillItem.users" class="child-item-td">
+		  		<table class="child-table">
+		  			<thead>
+		  							
+		  				            <td >客户名称</td>
+									<td >金额</td>
+		  			</thead>
+		  			<tbody>
+		  				<tr v-for="(ChildItem,childitemIndex) in receiptBill.receiptBill">
+		  					        <td>{{ChildItem.customer}}</td>
+		  						    <td>{{ChildItem.amount}}</td>
+		  				</tr>
+		  			</tbody>
+					<tfoot>
+							<tr>
+								<td>个人合计</td>
+								<td>{{totalSumAll(receiptBill.receiptBill,'amount')}}</td>
+							</tr>		
+					</tfoot>
+		  		</table>
+		  	 </td>
+		  	</template>
+		  </tr>
+		  <tr class="subtotal" v-show="ShowItem.receiptBill">
+		  	<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+		  		{{'部门小计:'+ item.stat.receiptBill.amount}}
+		  	</td>
+		  </tr>
+		  <tr class="subtotal" v-show="ShowItem.receiptBill">
+		  	<td :colspan="colspan">
+		  		{{'总计:' + total('receiptBill','amount') }}
+		  	</td>	
+		  </tr>
+			
+			
+			<!-- 在谈订单情况	-->
+				 
+			<tr class="item contract" @click="ShowItem.oppOrder=!ShowItem.oppOrder">
+				<td :colspan="colspan" >
+					<i :class="ShowItem.oppOrder?'vxe-icon--minus':'vxe-icon--plus'"></i>
+					<span>在谈订单情况</span>
+				</td>
+			</tr>
+			<tr v-show="ShowItem.oppOrder">
+				<template  v-for="(oppOrderItem,oppOrderIndex) in Data.listData">
+				 <td v-for="(oppOrder,index) in oppOrderItem.users" class="child-item-td">
+					<table class="child-table">
+						<thead>
+										<td style="width:'25%'">客户名称</td>
+										<td style="width:'20%'">型号</td>
+										<td style="min-width:40px;width: 40px; ">数量</td>
+										<td style="min-width:80px;width: 80px; ">金额</td>
+										<td style="min-width:70px;width: 70px; ">翻单/新单</td>
+						</thead>
+						<tbody>
+							<tr v-for="(ChildItem,childitemIndex) in oppOrder.oppOrder">
+											<td style="text-align: left;">{{ChildItem.customer}}</td>
+								            <td >{{ChildItem.standard}}</td>	
+											<td>{{ChildItem.quantity}}</td>
+											<td>{{ChildItem.amount}}</td>
+											<td>{{ChildItem.orderType}}</td>
+							</tr>
+						</tbody>
+									<tfoot>
+											<tr>
+												<td>个人合计</td>
+												<td></td>
+												<td>{{totalSumAll(oppOrder.oppOrder,'quantity')}}</td>
+												<td>{{totalSumAll(oppOrder.oppOrder,'amount')}}</td>										
+												<td></td>
+											</tr>		
+									</tfoot>
+					</table>
+				 </td>
+				</template>
+			</tr>
+			<tr class="subtotal" v-show="ShowItem.oppOrder">
+				<td v-for="(item,deptIndex) in Data.listData" :colspan="item.users.length">
+								<span style="padding-right:8px;">部门小计</span>
+								<span style="padding: 0 8px;">数量:{{item.stat.oppOrder.quantity}}</span>
+								<span style="padding: 0 8px;">金额:{{item.stat.oppOrder.amount}}</span>
+				</td>
+			</tr>
+			<tr class="subtotal" v-show="ShowItem.oppOrder">
+				<td :colspan="colspan">
+								<span style="padding-right:8px;">部门总计</span>
+								<span style="padding: 0 8px;">数量:{{total('oppOrder',['quantity','number','amount']).quantity}}</span>
+								<span style="padding: 0 8px;">金额:{{total('oppOrder',['quantity','number','amount']).amount}}</span>
+				</td>	
+			</tr>
+			
+			
+		<!-- 其他工作汇报 -->
+		
+		<tr class="item otherWorkList" @click="ShowItem.workOther=!ShowItem.workOther">
+			<td :colspan="colspan" >
+				<i :class="ShowItem.workOther?'vxe-icon--minus':'vxe-icon--plus'"></i>
+				<span>其他工作汇报</span>
+			</td>
+		</tr>
+		<tr v-show="ShowItem.workOther">
+			<template  v-for="(otherItem,otherIndex) in Data.listData">
+			 <td v-for="(other,index) in otherItem.users" class="child-item-td">
+				<table class="child-table">
+					<thead>					
+						    <td style="min-width:30px;width: 30px;">序号</td>
+							<td >事项</td>
+					</thead>
+					<tbody>
+						<template v-for="(ChildItem,childitemIndex,i) in other.other">
+							<tr v-if="ChildItem.workOther">
+								<td style="min-width:30px;width: 30px;">{{i?i+1:1}}</td>
+								<td>{{ChildItem.workOther}}</td>
+							</tr>
+						</template>
+						
+					</tbody>
+				</table>
+			 </td>
+			</template>
+		</tr>
+		
+		<!-- 需协助处理工作提报 -->
+		
+		<tr class="item helpWorkList" @click="ShowItem.workAssist=!ShowItem.workAssist">
+			<td :colspan="colspan" >
+				<i :class="ShowItem.workAssist?'vxe-icon--minus':'vxe-icon--plus'"></i>
+				<span>需协助处理工作提报</span>
+			</td>
+		</tr>
+		<tr v-show="ShowItem.workAssist">
+			<template  v-for="(otherItem,otherIndex) in Data.listData">
+			 <td v-for="(other,index) in otherItem.users" class="child-item-td">
+				<table class="child-table">
+					<thead>
+									
+						            <td style="min-width:30px;width: 30px;">序号</td>
+									<td >事项</td>
+					</thead>
+					<tbody >
+						<template v-for="(ChildItem,childitemIndex,i) in other.other" >
+							<tr v-if="ChildItem.workAssist">
+								<td style="min-width:30px;width: 30px;" >{{i?i+1:1}}</td>
+								<td >{{ChildItem.workAssist}}</td>
+							</tr>
+						</template>
+						
+					</tbody>
+				</table>
+			 </td>
+			</template>
+		</tr>
+        </tbody>
+
+			
+			</table>
+		</div>
+	   </el-scrollbar>
+	</el-main>
+ <record title="日报录入" ref='record' width='700px' @page_list='page_list' />
+  </el-container>
+ 
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import record from "./record";
+export default {
+  name: "dailyStatement",
+  components: {
+    page,
+	record,
+  },
+  data() {
+    return {
+      search: {
+		  reportDate:[this.moment().format('YYYY-MM-DD'),this.moment().format('YYYY-MM-DD')],
+	  },
+      totalCount: 0,
+	  ShowItem:{
+		   inquiryEamil:false,
+		   quotationEmail:false,
+		   RecommendEmail:false,
+		   other:false,
+		   sumEmail:false,
+		   telContact:false,
+		   media:false,
+		   u8Contract:false,
+		   u8SaleOrder:false,
+		   dispatch:false,
+		   receiptBill:false,
+		   workOther:false,
+		   helpWorkList:false,
+		   oppOrder:false,
+	  },
+      Data: {},
+	  iData:[],
+      auto: true,
+	  colspan:0,
+	  selectData:[],
+	  changeSelect:[],
+    };
+  },
+  computed:{
+	 
+  },
+  mounted() {
+    this.page_list();
+  },
+  methods: {
+	  //过滤
+	  filtration(){
+	this.Data.listData={};
+		  if(this.changeSelect.length>0){
+			  this.changeSelect.forEach((item,index)=>{
+				 this.Data.listData[item]=this.iData.listData[item]
+			  })
+			 
+		  }else{
+			  this.Data=this.iData;
+		  }
+	  },
+	  //个人合计
+	  totalSumAll(data,field){
+	  		    let totalSumAll = 0;
+					for(let obj in data){			
+						if(parseFloat(data[obj][field]) >0){
+							totalSumAll += ((parseFloat(data[obj][field]*100)).toFixed(2)-0)
+						}		
+				}
+	  		      return totalSumAll/100;
+	  },
+	  //总计
+	  total(name,field){
+		  let data=this.Data.listData;
+		  if(!this.Data.listData || this.Data.listData.length==0){
+			  console.log("执行1")
+			  return 0;
+			}else{
+				 console.log("执行2",this.Data.listData)
+				let sum;
+				 if(typeof field == 'string'){
+							 sum=0;
+							 for(let key in  data){
+							 	  sum += data[key].stat[name][field]
+							 }
+				}else{
+							 sum={}
+							 field.forEach((item)=>{sum[item]=0;})
+							 for(let key in  data){
+								 for(let sumKey in  sum){
+									 sum[sumKey] +=  ((parseFloat(data[key].stat[name][sumKey]*100)).toFixed(2)-0) 
+								 }
+							 }
+							 for(let sumKey in  sum){
+							 		sum[sumKey] =   sum[sumKey] /100
+							 }
+				}	
+				return sum
+			}
+	
+	  },
+    page_list: function() {
+		if(!this.search.reportDate[0] || !this.search.reportDate[1]){
+			this.$message.error("请填写日期");
+			return false;
+		}
+		else if(this.search.reportDate[0]>this.search.reportDate[1]){
+			this.$message.error("起始日期不能大于截至日期");
+			return false;
+		};
+      this.api.trade.dailyStatement.GetList(this.search).then(res => {
+        if(res.data.code==200){
+			this.iData=res.data.data
+			this.filtration();
+			if(res.data.data.listData.length>0){
+				this.getDept();
+				for(let obj in this.Data.listData){
+					this.colspan += this.Data.listData[obj]['users'].length
+				} 
+			}
+			 
+        }else{
+        this.$message.error(res.data.message)}
+        
+      });
+    },
+	//获取部门列表
+	getDept(){
+		this.selectData=[];
+		for(let key in this.iData.listData){
+			let obj={label:this.iData.listData[key].department,value:key};
+			this.selectData.push(obj);
+			
+		}
+	},
+	recordBtn:function(){
+		this.$refs.record.is_show=true;
+		this.$refs.record.EditInfo()	
+	},
+	calculate(){
+		this.Data.forEach((item,index)=>{
+			this.Data[index].sum={}
+			item.users.forEach((citem,cindex)=>{	
+				for(let obj in citem){
+					 this.Data[index].sum[obj] = this.Data[index].sum[obj]?this.Data[index].sum[obj]:0
+					 if(obj=='other'){
+						  this.Data[index].sum[obj]={
+							  'bussMailNum':0,
+							  'totalMailNum':0,
+						  }
+					 }
+					 for(let iobj in citem[obj]){
+						 if(citem[obj][iobj].quantity){
+							  this.Data[index].sum[obj] +=  parseInt(citem[obj][iobj].quantity);
+						 }
+						 if(citem[obj][iobj].amount){
+							 if(index==0 && obj=='u8Contract'){
+							 }
+							  let number = new Number(citem[obj][iobj].amount)
+							  this.Data[index].sum[obj] = this.Data[index].sum[obj] + ((parseFloat(number*100)/100).toFixed(2)-0);
+						 }
+						 if(obj=='other'){
+							 this.Data[index].sum.other.bussMailNum   += citem[obj][iobj].bussMailNum?  parseInt(citem[obj][iobj].bussMailNum):0;
+							  this.Data[index].sum.other.totalMailNum += citem[obj][iobj].totalMailNum? parseInt(citem[obj][iobj].totalMailNum):0;
+							 
+						 }
+					 }
+					
+				}
+			})
+		})
+	}
+  }
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+tr{
+	height: 30px;
+}
+td{
+	padding: 0 10px;
+	width: 300px;
+	
+}
+.user{
+	height: 60px;
+}
+table{
+	    table-layout: fixed;
+	    border-collapse: collapse;
+	    // width: 100%;
+	    border: 1px solid #e6e6e6;
+		 min-height: 25px; 
+		 line-height: 25px; 
+		 text-align: center; 
+		 border-collapse: collapse; 
+		 padding:2px;
+}
+table,table tr th, table tr td { border:1px solid #e6e6e6; }
+.child-table{
+	margin: 8px 5px;
+	thead{
+		td{
+			min-width: 120px;
+		}
+	}
+	
+}
+
+.department td{
+	min-width: 320px;
+}
+.username {
+	min-width: 320px;
+}
+.item{
+	background: #fafafa;
+	text-align: left;
+	cursor: pointer;
+	padding: 12px 0;
+};
+
+.department{
+	height: 60px;
+	background: #fafafa;
+}
+.item td{
+	
+	// width: 100%;
+}
+tfoot td,
+thead td{
+	background: #fafafa;
+	font-size: 14px;
+}
+.subtotal{
+	text-align: left;
+	background: #fafafa;
+}
+.child-item-td{
+	vertical-align: top;
+}
+
+.item i{
+	margin: 0 7px;
+	color: #333;
+}
+/deep/ .el-select--small{
+	margin: 0 10px;
+}
+</style>

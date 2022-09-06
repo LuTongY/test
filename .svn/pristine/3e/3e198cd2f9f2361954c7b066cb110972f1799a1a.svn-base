@@ -1,0 +1,19 @@
+<template>
+	<div>
+		<i class="fa fa-home fa-lg"> 主页</i>
+	</div>
+</template>
+<script>
+	export default{
+		components:{},
+		data(){
+			return{}
+		},
+		mounted() {
+			
+		},
+		methods:{
+			
+		},
+	}
+</script>

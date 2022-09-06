@@ -1,0 +1,260 @@
+<template>
+   <div v-dialogdrag v-if="is_show">
+    <el-dialog v-model="is_show"   width="1200px" title="添加标准产能"  destroy-on-close top='7vh'>
+      <el-row>
+        <el-col :span="11">
+          <el-container id="add_CapacityProcess">
+            <el-header>
+              <vxe-toolbar>
+                <template #buttons>
+                  <vxe-input v-model="addsearch.invCode" placeholder="子件编码"></vxe-input>
+                  <vxe-input v-model="addsearch.invName" placeholder="子件名称" style="margin-left: 15px;"></vxe-input>
+                  <vxe-button status="primary" @click="page_list">搜索</vxe-button>
+                </template>
+              </vxe-toolbar>
+            </el-header>
+            <el-main>
+              <vxe-table 
+			    :data="addtableData" 
+				height="575" 
+				border="full"
+				show-overflow
+				header-align="center" 
+				highlight-hover-row 
+				highlight-current-row
+                :radio-config="{ trigger: 'row'}"
+				 @radio-change="radioChange"> 
+                <vxe-column type="radio" title="选项" width="60" align="center"></vxe-column>
+                <vxe-table-column field="cInvCode" title="子件编码" width="140" align="center"></vxe-table-column>
+                <vxe-table-column field="cInvName" title="子件名称" align="left"></vxe-table-column>
+              </vxe-table>
+            </el-main>
+            <el-footer>
+                <page ref="c_page_data" :totalCount="totalCount" @page_list="page_list" />
+            </el-footer>
+          </el-container>
+        </el-col>
+        <el-col :span="13" id='gxListTitle'>
+          <el-form ref="form" :model="radioForm" label-width="80px" label-position="left">
+            <el-form-item label="编码">
+              <el-input v-model="radioForm.cInvCode" readonly size="small"></el-input>
+            </el-form-item>
+			<el-form-item label="物料名称">
+			  <el-input v-model="radioForm.cInvName" readonly size="small"></el-input>
+			</el-form-item>
+          </el-form>
+          <vxe-toolbar>
+            <template #buttons>
+              <vxe-button icon="fa fa-plus" @click="addItems">新增</vxe-button>
+              <vxe-button @click="delItems">删除</vxe-button>
+            </template>
+          </vxe-toolbar>
+         
+          <table
+            border="1"
+            style="border-collapse:collapse;border-spacing: 0;table-layout: fixed; border:1px solid #ccc; font-size:11px; width:98%;overflow: hidden;"
+            class="gxTable"
+          >
+            <thead>
+              <tr>
+                <td style="width:12%;">选项</td>
+                <td style="width:28%;">工序名称</td>
+                <td style="width:20%">10分钟产能(标准)</td>
+                <td style="width:20%;">一小时产能(标准)</td>
+                <td style="width:20%;">10.5产能(标准)</td>
+              </tr>
+            </thead>
+			 </table>
+             <div class="gxTableMain">
+				 <table
+				 border="1"
+				 style="border-collapse:collapse;border-spacing: 0;table-layout: fixed; border:1px solid #ccc; font-size:11px; width:100%;overflow: hidden;"
+				 >
+            <tbody>
+              <tr v-for="(itme_tr,tr_index) in items.length" :key="items[tr_index].sorts">
+                <td style="text-align: center;width:12%;">
+                  <el-checkbox v-model="items[tr_index].checked" @change='checkbox(tr_index)'></el-checkbox>
+                </td>
+                <td style="width:28%">
+                    <el-cascader
+                       v-model="items[tr_index].processId"
+                       :options="options"
+                       :props="props"
+                       size="mini"
+					   
+                       ></el-cascader>
+                </td>
+                 <td style="width: 20%;">
+                   <el-input v-model="items[tr_index].capacityMinute10" placeholder="产能" size="mini"></el-input>
+                </td>
+                 <td style="width: 20%;">
+                   <el-input v-model="items[tr_index].capacityHour" placeholder="产能" size="mini" type='number'></el-input>
+                </td>
+                 <td style="text-align: center;width:20%;border-right: none;">
+                    <el-input v-model="items[tr_index].capacityHour105" placeholder="产能" size="mini"></el-input>
+                </td>
+              </tr>
+            </tbody>
+			   </table>
+            </div>
+       
+        
+        </el-col>
+      </el-row>
+           <div style="height:40px;margin-top:8px">
+             <el-button type="primary" @click="submitForm('roleForm')" style="float:right;margin:0 8px">确认</el-button>
+             <el-button @click="is_show=false" style="float:right">取消</el-button>
+           </div>
+
+    </el-dialog>
+  </div>
+</template>
+<script>
+import page from "@/components/page/page.vue";
+export default {
+  components: {
+    page
+  },
+  data() {
+    return {
+      is_show: false,
+      addsearch: {},
+      addtableData: [],
+      totalCount: 0,
+      Version:'',
+      props: { expandTrigger: 'hover',value:'id',label:'name',emitPath:false},
+      items: [
+        {
+        capacityMinute10: "",
+        capacityHour: "",
+        capacityHour105: "",
+          sorts:1,
+        }
+      ],
+      code: "",
+      name: "",
+      radioForm: {},
+      checked: [],
+      gx_list: 1,
+      options:[],
+      delchecked:[],
+    };
+  },
+  methods: {
+    page_list() {
+      let pagesize = this.$refs.c_page_data.page_size;
+      let page = this.$refs.c_page_data.page;
+      this.$refs.c_page_data.layout="total,  pager, next";
+      this.api.production.CapacityProcess.GetInventoryList(pagesize,page,this.addsearch).then(res => {
+        if (res.data.code == 200) {
+          this.addtableData = res.data.data.rows;
+          this.totalCount = parseInt(res.data.data.totalCount);
+        }
+      });
+    },
+    addItems() {
+        this.gx_list++;
+        this.items.push({
+        capacityMinute10: "",
+        capacityHour: "",
+        capacityHour105: "",
+      });
+    },
+    radioChange(row){
+      this.radioForm=row.row
+      this.api.production.ProcessRoute.Version(this.radioForm.code).then((res)=>{
+          if(res.data.code==200){
+            this.Version=res.data.data.version
+          }else{
+            this.$message.error(res.data.message)
+          }
+      })
+    },
+    submitForm(){
+      this.api.production.CapacityProcess.Add(this.items,this.radioForm.cInvCode).then((res)=>{
+                  if(res.data.code==200){
+                         this.is_show=!this.is_show
+					     this.$message.success('添加成功')
+						 this.$emit('page_list');
+                  }
+      })
+    },
+    checkbox(value){
+    if(this.delchecked.indexOf(value)>-1){
+        this.delchecked.splice(this.delchecked.indexOf(value),1)
+    }else{
+        this.delchecked.push(value)
+    }
+    },
+    delItems(){
+      this.delchecked.forEach((v,i)=>{
+          this.items.splice(v,1)  
+      });
+      this.delchecked=[]
+      this.items.forEach((v,i)=>{
+         v.sorts=i+1;
+         v.checked=false
+      })
+    },
+	//获取工序车间
+	getWorkshopWithProcessChilds(){
+		 this.api.production.CapacityProcess.EditInfo().then((res)=>{
+			 if(res.data.code==200){
+				 this.options=res.data.data.processList
+			 }
+		 })
+	}
+  }
+};
+</script>
+<style lang='less' scoped="scoped">
+/deep/ .el-dialog__body{
+	padding-top: 0;
+	padding-bottom: 5px;
+}
+#add_CapacityProcess {
+  border-right: 1px solid #ccc;
+  margin-right: 20px;
+  overflow: hidden;
+}
+.el-footer {
+	height: 35px;
+  overflow: hidden;
+}
+.el-form-item__label {
+  padding: 0 12px 0 10px;
+}
+thead > tr {
+		height: 30px;
+		text-align: center;
+		background-color: #f2f2f2;
+   
+	}
+.gxTable  tbody td
+{
+ padding:0 10px
+}
+/deep/ .el-input__suffix-inner i, .el-input__prefix i{
+  height: 28px;
+}
+.el-main{
+	padding-top: 0;
+	padding-bottom: 5px;
+}
+.gxTable .el-input--mini .el-input__icon{
+  height:28px
+}
+.el-cascader{
+  width:100%
+}
+.gxTableMain{
+  width:614px;
+  height:467px;
+  border: 1px solid rgb(204, 204, 204);
+  border-top: none;
+  overflow-y: overlay;
+}
+#gxListTitle .el-form-item{
+   margin-bottom: 0px;
+}
+</style>

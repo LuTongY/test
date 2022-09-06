@@ -1,0 +1,257 @@
+<template>
+  <el-container>
+    <el-header >
+      <vxe-toolbar ref="AssignGroupToolbar" custom print export >  
+        <template #buttons>
+			<el-row>
+				<vxe-button status="primary"   @click="searchDate">查询</vxe-button>
+				<vxe-button  v-has="['assign']" @click="DispatchWorkcenterShow">指派工作中心</vxe-button>
+				<vxe-button v-has="['del']" @click="del">删除指派</vxe-button>
+				<vxe-select v-model="search.workshopName" placeholder="全部" style="margin: 0 8px;width: 120px;" clearable @change="changeWorkshops">
+				       <vxe-option v-for="(item,index) in workshops" :value="item" :label="item"  :key="index"></vxe-option>
+				</vxe-select>
+				<title-date  ref="TitleDate"   @page_list="page_list" v-model:Pdata="search.date" />
+			</el-row>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table
+        :data="AssignGroupDate"
+        highlight-current-row
+        highlight-hover-row
+        height="auto"
+        border="full"
+        ref="AssignGroup"
+		:print-config="{}"
+        :auto-resize="$store.state.autoResize"
+		show-overflow
+		show-footer-overflo
+		show-footer
+		:footer-method="GetfooterData"
+		:scroll-x="{gt: 50}"
+		:scroll-y="{gt: 50}"
+		:hideColumn="['invCode']"
+        :checkbox-config="{checkField: 'checked', trigger: 'row',range: true,highlight: true,}"
+      >
+        <vxe-column type="checkbox" width="60" align="center"></vxe-column>
+		<vxe-column field="workshopName" title="车间名称"  width="100px"></vxe-column>
+		<vxe-column field="taskId" title="制造令ID"   width="80px" align="center"></vxe-column>
+        <vxe-column field="productNo" title="生产订单号"  width="130px"></vxe-column> 
+        <vxe-column field="series" title="系列"   width="100px"></vxe-column>
+		<vxe-column field="pInvCode" title="成品编码"  width="120px" :visible='false'></vxe-column>
+		<vxe-column field="pInvName" title="成品名称"  ></vxe-column>
+		<vxe-column field="orderQty" title="成品数量"  width="90px"></vxe-column>	
+		<vxe-column field="invCode" title="子件编码"  width="120px" :visible='false'></vxe-column>
+        <vxe-column field="invName" title="子件名称" ></vxe-column>
+		<vxe-column field="quantity" title="子件数量"  width="90px"></vxe-column>	
+		<vxe-column field="processName"  title="工序名称"  width="130px" fixed="right" :filters="filters.processName"></vxe-column>
+		<vxe-column field="produceDate" title="开工日期"  width="120px" fixed="right"></vxe-column>
+		<vxe-column field="workcenterName" title="指派工作中心"  width="120px" fixed="right"></vxe-column>
+		<vxe-column field="assignProduceDate" title="指派生产日期"  width="120px" fixed="right"></vxe-column>
+		<vxe-column field="assignStatus" title="状态"  width="90px" align="center" fixed="right">
+			<template #default="{ row }">
+				<el-button   type='success'  size='mini'   v-if="parseInt(row.workcenterId)>0" >已分配</el-button>
+				<el-button type="danger"     size='mini'  v-else >未分配</el-button>
+			</template>
+		</vxe-column>
+		
+      </vxe-table>
+    </el-main>
+	<search ref="search"   width="550px" @page_list="page_list" class="search">
+			<el-form  :model="search"    label-width="120px" class="demo-ruleForm">
+				<el-form-item label="生产订单号">
+				    <vxe-input v-model.trim="search.productNo"  placeholder="生产订单号"></vxe-input>
+				</el-form-item>
+				<el-form-item label="子件编码">
+					<vxe-input v-model.trim="search.invCode"      placeholder="子件编码"></vxe-input>
+				</el-form-item>
+				<el-form-item label="子件名称">
+					<vxe-input v-model.trim="search.invName"       placeholder="子件名称"></vxe-input>
+				</el-form-item>
+			</el-form>
+	</search>
+	<search ref="DispatchWorkcenter" width="450px" :FootBtn='false'>
+		<el-form  :model="DispatchWorkcenterForm"    label-width="120px" class="demo-ruleForm">
+			<el-form-item label="加工日期">
+				<vxe-input  v-model="DispatchWorkcenterForm.date" placeholder="加工日期" type="date" class="data"></vxe-input>
+			</el-form-item>
+			<el-form-item label="工作中心">
+				<el-cascader
+				size="small"
+				    v-model="DispatchWorkcenterForm.workcenterId"
+				    :options="WorkGetList"
+				    :props="{ expandTrigger: 'hover',label:'name',value:'id',emitPath:false }"
+				    >
+				</el-cascader>
+			</el-form-item>
+			<p style="text-align: center;">
+				<el-button type="primary"  class="load_bt" @click="DispatchWorkcenter">指派</el-button>
+			</p>
+		</el-form>
+	</search>
+  </el-container>
+ 
+</template>
+<script>
+import search from "@/components/TitleSearch/TitleSearch.vue";
+import TitleDate from "@/components/TitleDate/TitleDate.vue"
+//import edit from "./edit.vue";
+export default {
+  name: "AssignGroup",
+  components: {
+   search,
+   TitleDate
+   // edit,
+  },
+  data() {
+    return {
+      search: {},
+      totalCount: 0,
+      tableData: [],
+	  AssignGroupDate:[],
+      select_id: "",
+	  form:{},
+      auto: true,
+	  workshops:[],
+	  footerSumName:['quantity','orderQty'],
+	  filters:{
+	  		  invName:[],
+	  		  processName:[],
+	  		  pInvName:[],
+	  },
+	  WorkGetList:[],
+	  DispatchWorkcenterForm:{}
+    };
+  },
+  mounted() {
+	 this.page_list();
+  },
+  created () {
+              this.$nextTick(() => {this.$refs.AssignGroup.connect(this.$refs.AssignGroupToolbar)})
+            },
+  methods: {
+    page_list: function() {
+      this.api.production.AssignGroup.GetWorkcenterAssignList(this.search).then(res => {
+        if(res.data.code==200){
+        this.tableData = res.data.data.rows;
+		this.workshops = res.data.data.workshops
+		this.workcenters = res.data.data.workcenters
+		this.search.workshopName=this.search.workshopName?this.search.workshopName:Object.keys(this.tableData)[0]
+		this.AssignGroupDate=this.tableData[this.search.workshopName]
+		this.updateNameFilterEvent(this.filters)
+		this.$refs.search.SelectShow=false
+        }else{
+        this.$message.error(res.data.message)}
+        
+      });
+    },
+	changeWorkshops:function(row){
+		this.AssignGroupDate=this.tableData[row.value]
+	},
+    searchDate:function(){
+    	this.$refs.search.SelectShow=true;
+    },
+    del: function() {
+     let data = this.$refs.AssignGroup.getCheckboxRecords();
+     if (data.length < 1) {this.$message.error("至少选择一个订单");return false}
+      let ids = [];
+      data.forEach((i, v) => {ids.push(i.id)});
+      this.$confirm("此操作将删除已指派的工作中心及已指派的人员记录, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        this.api.production.AssignGroup.del(ids).then(res => {
+			if(res.data.code==200){
+				this.page_list();
+				this.$message.success("删除成功");
+			}else{
+				this.$message.error(res.data.message);
+			}
+          
+        });
+      });
+    },
+	GetfooterData:function ({ columns, data }) {
+						   this.footerData=[]
+						   let sumObj={}
+						   let arr=[]
+						   for(let i=0;i<this.footerSumName.length;i++){
+							   sumObj[this.footerSumName[i]]=0;
+						   }
+						   data.forEach((item,index)=>{
+							   for(let obj in sumObj){
+								   if(!isNaN(item[obj]) && item.hasOwnProperty(obj)){
+									    sumObj[obj] += parseInt(item[obj])
+								   } 
+							   }
+						   })
+						   columns.forEach((item,index)=>{
+							   if(index==0){arr.push('合计')}
+							   else if(this.footerSumName.indexOf(item.property)>-1){
+								   arr.push(sumObj[item.property])
+							   }
+							   else{arr.push("-")}
+						   })
+						   this.footerData.push(arr)
+					              return this.footerData
+					            },
+	updateNameFilterEvent:function (columnName) {
+	          const xTable = this.$refs.AssignGroup 
+	              // 修改筛选列表，并默认设置为选中状态
+			  for(let obj in columnName){
+				  const column = xTable.getColumnByField(obj)
+				  xTable.setFilter(column,this.T.el_table_filters(this.AssignGroupDate,obj))
+				 
+			  }
+			  xTable.updateData()
+	            },
+	DispatchWorkcenterShow:function(){
+		let data = this.$refs.AssignGroup.getCheckboxRecords();
+		if (data.length < 1) {this.$message.error("至少选择一个订单");return false}
+		this.getWorkshopWorkcenters();
+		this.$refs.DispatchWorkcenter.SelectShow=true;
+	},
+	DispatchWorkcenter: function() {
+		let data = this.$refs.AssignGroup.getCheckboxRecords();
+		if (data.length < 1) {this.$message.error("至少选择一个订单");return false}
+		let ids = [];
+		const $table = this.$refs.plan
+		data.forEach((i, v) => {
+			ids.push(i.id)
+			});
+		 let obj={ids:ids,date:this.DispatchWorkcenterForm.date,workcenterId:this.DispatchWorkcenterForm.workcenterId}
+		this.api.production.AssignGroup.DispatchWorkcenter(obj).then(res=>{
+			if (res.data.code == 200) {
+				        this.page_list();
+						this.$refs.DispatchWorkcenter.SelectShow=false;
+						this.$message.success(res.data.message);		
+				  	} else {
+				  		this.$message.error(res.data.message);										 
+				  	}
+		})
+	},
+	getWorkshopWorkcenters:function(){
+			  this.api.production.Assign.getWorkshopWorkcenters().then(res => {
+			  		if(res.data.code==200){
+			  			this.WorkGetList = res.data.data.workcenters;
+			  		}else{
+			  			this.$message.error(res.data.message);
+			  		}   
+			  });
+	},
+  }
+};
+</script>
+<style lang="less" scoped>
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+.search .vxe-input{
+	width: 350px;
+}
+/deep/ .el-input__suffix-inner i{
+	height: 32px;
+}
+</style>

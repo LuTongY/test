@@ -1,0 +1,157 @@
+<template>
+	<print-dialog ref='dialog' title='打印派工单' width='1200px' :FootBtn='false'>
+	   <div class="IntendPrint_wapper">
+	   	<div class="IntendPrint_header" style="display: flex;">
+	   		<vxe-button @click="print(0)">打印</vxe-button>
+	   		<vxe-button @click="print(1)">预览</vxe-button>
+	   	</div>
+	   	<div class="IntendPrint_main" id="print" style="padding: 0 20px;height: 500px;overflow: auto;">
+			<el-empty :image-size="200" v-if="data.length<1"/>
+	   		<form id="form1" v-else>    
+	   		    	<table id="form2" border="1" width="90%" style="margin:20px auto;border-collapse:collapse; font-size:16px;">
+						<thead >
+									<tr style='height: 40px;font-size: 13px;'>
+									                 <th style='width:100px'>组别</th>
+								   	                 <th style='width:100px'>生产订单号</th>
+												     <th style='width:190px'>成品型号</th>
+													 <th style='width:7em'>成品数量(套)</th>
+													 <th style='width:100px'>部件编码</th>
+												     <th style='width:280px'>部件名称</th>
+												     <th style='width:80px'>工序名称</th>
+											         <th style='width:80px'>派工数量</th>
+						                         </tr>
+						</thead>
+	   		            <tbody>
+							<template v-for="(item,index) in data">
+							<tr v-if="index !=0 && data[index].workcenterName!=data[index-1].workcenterName">
+								<td>小计:</td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td>{{workcenter[data[index-1].workcenterName]}}</td>
+							</tr>
+	   						<tr>
+								<td style="font-size: 12px;">{{item.workcenterName}}</td>
+								<td style="font-size: 12px;">{{item.productNo}}</td>
+								<td style="font-size: 12px;">{{item.pInvName}}</td>
+								<td >{{item.orderQty}}</td>
+								<td style="font-size: 12px;">{{item.invCode}}</td>
+								<td style="font-size: 12px;">{{item.invName}}</td>
+								<td style="font-size: 12px;">{{item.processName}}</td>
+								<td style="font-size: 12px;">{{item.quantity}}</td>
+							</tr>
+							<tr v-if="index == (data.length-1)">
+								<td>小计:</td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td>{{workcenter[data[index].workcenterName]}}</td>
+							</tr>
+							</template>
+	   		           </tbody>
+	   		            <tfoot>
+	   		            </tfoot>
+	   		        </table>
+	   		    </form>
+	   	</div>
+	   </div>
+	</print-dialog>
+</template>
+<script>
+	import printDialog from "@/components/TitleSearch/TitleSearch.vue";
+	import { getLodop } from '@/components/js/LodopFuncs.js'
+	import print from "@/components/print/print.vue"
+	export default{
+		components:{
+			print,
+			printDialog,
+		},
+		props:{
+			date:{
+				default:'',
+			},
+			workcenterName:{
+				type:String,
+				default:'',
+			}
+		},
+		data(){
+			return{
+				data:'',
+			}
+		},
+		computed: {
+		    workcenter:function(){
+				let sum = {};
+				this.data.forEach((item,index)=>{
+					if(!sum.hasOwnProperty(item.workcenterName)){sum[item.workcenterName]=0;}
+					  sum[item.workcenterName] += parseInt(item.quantity)
+					
+				})
+				console.log(sum);
+				return sum;
+			}
+		},
+		mounted() {
+		},
+		methods:{
+			isShow:function(){
+				this.$refs.dialog.SelectShow=true;
+			},
+			subtotal: function() {
+				
+				array.forEach((item, index) => {
+					if(item.workcenterName)
+					sum += parseFloat(item[keyName]);
+				})
+				return sum;
+			},
+			print(s) {
+				try{
+					this.CreateOneFormPage();
+					if(s==0){			
+						 LODOP.PRINT();
+						 this.$message.success("打印成功")
+						 this.$refs.dialog.SelectShow=false;
+						 this.$emit('page_list')
+					}
+					if(s==1){
+						 LODOP.PREVIEW();
+					}
+				}catch(err){
+					this.$message.error(err)
+				}
+				
+			},
+			CreateOneFormPage() {
+					LODOP.SET_PRINT_PAGESIZE(2, 0, 0,"A4");
+					// 打印内容
+					LODOP.ADD_PRINT_TABLE(75,10,"97%","90%",document.getElementById("form1").innerHTML);
+				   //标题   
+					LODOP.ADD_PRINT_HTM(30,"2.5%","95%",2000,"<caption style='position:relative'><div style='font-size:20px; width:500px;margin-bottom: 10px;''>【生产排程】("+this.date+")</div></div></caption>");
+					LODOP.SET_PRINT_STYLEA(0,"ItemType",1);
+					LODOP.SET_PRINT_STYLEA(0, "LinkedItem", 2);
+					//页码	   
+					LODOP.ADD_PRINT_HTM(630,"60%","95%",54,"<span style='font-size:12px'>页号: </span><span style='font-size:12px' tdata='pageNO'>第##页</span>/<span style='font-size:12px' tdata='pageCount'>共##页</span>");
+					LODOP.SET_PRINT_STYLEA(0,"ItemType",1);
+					LODOP.SET_PRINT_STYLEA(0,"LinkedItem",1);
+			},
+		},
+	}
+</script>
+<style scoped>
+	.IntendPrint_wapper{
+		height: 100%;
+	}
+	.IntendPrint_main{
+		height: calc(100% - 70px);
+		overflow: auto;
+	}
+	
+</style>

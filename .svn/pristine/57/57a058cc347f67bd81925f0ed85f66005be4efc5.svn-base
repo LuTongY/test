@@ -1,0 +1,303 @@
+<template>
+  <div v-dialogdrag>
+    <el-dialog :title="'应聘者信息'" v-model="is_show" width="700px" destroy-on-close>
+      <el-form :model="saveForm" :rules="rules" ref="saveForm" label-width="120px">
+        <el-scrollbar height="500px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="应聘者姓名：">{{ saveForm.name }}</el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="招聘人员：">{{ recruiterList[saveForm.recruiterId] }}</el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话：">{{ saveForm.tel }}</el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="微信号：">
+                <el-col :span="16">{{ saveForm.wx == '' ? '-' : saveForm.wx }}</el-col>
+                <el-col :span="3" style="padding-left:25px;" v-if="saveForm.wx != ''">
+                  <el-checkbox v-model="saveForm.isAddWx" value="1" :disabled="true"
+                    :checked="saveForm.isAddWx == 'true'">
+                    已加微信
+                  </el-checkbox>
+                </el-col>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="部门/职位：">
+                {{ departmentList[saveForm.departmentId] }} / {{ postOptions[saveForm.postId] }}
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="招聘渠道：">{{ saveForm.channel }}</el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="薪资要求：">{{ saveForm.salaryRequire }}</el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="优先级：">{{ priorityOption[saveForm.priority] }}</el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="上传简历：">
+              <a :href="saveForm.resume" target="_blank"><span>{{ saveForm.resumeName }}</span></a>
+            </el-form-item>
+          </el-row>
+          <el-row>
+            <el-form-item label="沟通结果：">{{ saveForm.contactResult }}</el-form-item>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="是否复试：">{{ judgmentOption[saveForm.isArrive] }}</el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="复试人：" v-show="saveForm.isArrive == 1">
+                {{ saveForm.retester }}
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="复试结果：" v-show="saveForm.isArrive == 1">
+              {{ saveForm.secondResult }}
+            </el-form-item>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="是否录用：" v-show="saveForm.isArrive == 1">
+                {{ judgmentOption[saveForm.isHire] }}
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="录用薪资待遇：" v-if="saveForm.isArrive == 1 && saveForm.isHire == 1">
+                {{ saveForm.hireSalary }}
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="预计报到时间：" v-show="saveForm.isArrive == 1 && saveForm.isHire == 1">
+                {{ saveForm.checkinExpect }}
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="工号：" v-show="saveForm.isArrive == 1 && saveForm.isHire == 1">
+                {{ saveForm.checkinStaffNo }}
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="备注：">
+              {{ saveForm.remark }}
+            </el-form-item>
+          </el-row>
+          <el-row style="padding:15px 10px;">
+            <table class="gxTable">
+              <thead>
+                <tr>
+                  <td style="width:70px;">沟通时间</td>
+                  <td style="width:50px;">类别</td>
+                  <td style="width:60px;">时长(分钟)</td>
+                  <td style="width:70px;">截图凭证</td>
+                  <td style="width:286px">沟通结果</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, tr_index) in saveForm.contactList" :key="tr_index">
+                  <template v-if="item">
+                    <td style="">{{ item.contactTime }}</td>
+                    <td style="text-align: center;">{{ item.typeName }}</td>
+                    <td style="text-align: right;">{{ item.duration }}</td>
+                    <td style="">
+                      <a :href="itemSub" target="_blank" v-for="(itemSub, key) in item.pictures" :key="key">
+                        <img :src="itemSub" />
+                      </a>
+                    </td>
+                    <td style="text-align: center;border-right: none;">{{ item.remark }}</td>
+                  </template>
+                </tr>
+                <template v-if="saveForm.contactList.length <= 0">
+                  <tr>
+                    <td colspan="5" style="text-align: center;line-height: 40px;">暂无沟通记录</td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </el-row>
+        </el-scrollbar>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      is_show: false,
+      sexOption: {},
+      recruiterList: [],
+      departmentList: [],
+      postOptions: [],
+      postList: [],
+      channelOption: [],
+      contactTypeOption: [],
+      saveForm: {
+        postId: "",
+        channel: "",
+        name: "",
+        sex: "",
+        age: "",
+        tel: "",
+        education: "",
+        workExp: "",
+        currentPost: "",
+        currentCompany: "",
+        salaryRequire: "",
+        source: "",
+        telResult: "",
+        description: "",
+        isArrive: "",
+        firstTest: "",
+        firstResult: "",
+        recommender: "",
+        secondTest: "",
+        isHire: "",
+        checkinExpect: "",
+        checkinStaffNo: "",
+        isCheckin: "",
+        checkinActual: "",
+        regularTime: "",
+        isRegular: "",
+        remark: "",
+        contactList: [],
+      }
+    };
+  },
+  methods: {
+  },
+};
+</script>
+<style lang='less' scoped>
+.txtarea-item {
+  line-height: 2;
+}
+
+/deep/.upload-demo {
+  width: 80px;
+  height: 40px;
+}
+
+/deep/.upload-demo-list i {
+  color: red;
+  padding: 3px;
+  border-radius: 100%;
+  height: 14px;
+  width: 14px;
+  text-align: center;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+/deep/.upload-demo .upload-img {
+  width: 100%;
+  height: 100%;
+}
+
+/deep/.el-upload {
+  width: 80px;
+  height: 40px;
+}
+
+/deep/.el-upload-dragger {
+  width: 80px;
+  height: 40px;
+}
+/deep/.el-form-item__label{
+  font-weight: bold;
+}
+
+.gxTable {
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+  border: 1px solid #ccc;
+  font-size: 12px;
+  // width: 530px
+}
+
+.gxTableBody {
+  border: 1px solid #ccc;
+}
+
+.gxTable td {
+  padding: 0 10px
+}
+
+.gxTable thead td {
+  line-height: 30px;
+  border: 1px solid #ccc;
+  background-color: #f2f2f2;
+  text-align: center;
+}
+
+
+.gxTable tbody td {
+  border-bottom: 1px solid #ccc;
+}
+
+.gxTable tbody td a {
+  width: 20px;
+  height: 30px;
+  display: block;
+  float: left;
+  margin: 2px 3px 2px 0;
+}
+
+.gxTable tbody td img {
+  width: 100%;
+  height: 100%;
+}
+
+/deep/ .el-input__suffix-inner i,
+.el-input__prefix i {
+  height: 28px;
+}
+
+.el-main {
+  padding-top: 0;
+  padding-bottom: 5px;
+}
+
+.gxTable .el-input--mini .el-input__icon {
+  height: 28px
+}
+
+.el-cascader {
+  width: 100%
+}
+
+.gxTableMain {
+  width: 666px;
+  height: 467px;
+
+  overflow-y: overlay;
+}
+
+.el-form {
+  overflow: hidden;
+}
+
+.el-form-item {
+  margin-bottom: 0;
+}
+
+#gxListTitle .el-form-item {
+  margin-bottom: 0px;
+}
+</style>

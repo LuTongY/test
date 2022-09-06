@@ -1,0 +1,131 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar ref="FlowCardToolbar" custom print export>
+        <template #buttons>
+          <vxe-button status="primary" @click="searchDate">查询</vxe-button>
+          <vxe-button @click="GetPrintData">补打</vxe-button>
+          <vxe-button v-has="['del']" @click="del">删除</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" border="full" ref="FlowCard"
+        :print-config="{}" show-overflow :auto-resize="$store.state.autoResize" @cell-click="selectId"
+        :radio-config="{ labelField: 'name', trigger: 'row' }">
+        <vxe-column type="radio" width="50" align="center"></vxe-column>
+        <vxe-table-column field="id" title="id" width="60px" align="center"></vxe-table-column>
+        <vxe-table-column field="productNo" title="生产订单号" width="135px"></vxe-table-column>
+        <vxe-table-column field="pInvCode" title="成品编码" width="120px" :visible='false'></vxe-table-column>
+        <vxe-table-column field="pInvName" title="成品名称" min-width="360px"></vxe-table-column>
+        <vxe-table-column field="orderQty" title="订单数量" width="80px"></vxe-table-column>
+        <vxe-table-column field="invCode" title="子件编码" width="120px" :visible='false'></vxe-table-column>
+        <vxe-table-column field="invName" title="子件名称" min-width="320px"></vxe-table-column>
+        <vxe-table-column field="quantity" title="本卡数量" width="80px"></vxe-table-column>
+        <vxe-table-column field="createUser" title="打印人" width="70px"></vxe-table-column>
+        <vxe-table-column field="createTime" title="打印时间" width="115px"></vxe-table-column>
+        <vxe-table-column field="printTimes" title="打印次数" width="80px"></vxe-table-column>
+      </vxe-table>
+    </el-main>
+    <el-footer>
+      <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+    </el-footer>
+    <print ref="print" @reload_list="page_list" />
+    <search ref="search" @SonSearch="SonSearch" />
+  </el-container>
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import print from "./print.vue";
+import search from "./search.vue";
+
+export default {
+  name: "FlowCard",
+  components: {
+    page,
+    print,
+    search,
+  },
+  data() {
+    return {
+      search: {},
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true
+    };
+  },
+  created() {
+    this.$nextTick(() => {
+      // 手动将表格和工具栏进行关联
+      this.$refs.FlowCard.connect(this.$refs.FlowCardToolbar)
+    })
+  },
+  mounted() {
+    this.page_list();
+  },
+  methods: {
+    page_list: function () {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.production.FlowCard.GetList(pagesize, page, this.search).then(res => {
+        if (res.data.code == 200) {
+          this.tableData = res.data.data.rows;
+          this.totalCount = parseInt(res.data.data.totalCount);
+          this.$refs.search.SelectShow = false
+        } else {
+          this.$message.error(res.data.message)
+        }
+
+      });
+    },
+    selectId: function (item) {
+      this.select_id = item.row.id;
+    },
+    del: function () {
+      let data = this.$refs.FlowCard.getRadioRecord()
+      if (data == null) { this.$message.error("请选择一张流转卡"); return false }
+      this.$confirm("此操作将删除该流转卡, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        this.api.production.FlowCard.Delete(data.id).then(res => {
+          this.page_list();
+          this.$message.success("删除成功");
+        });
+      });
+    },
+    searchDate: function () {
+      this.$refs.search.SelectShow = true;
+    },
+    SonSearch: function () {
+      this.search = this.$refs.search.form;
+      this.page_list()
+    },
+    GetPrintData: function () {
+
+      let data = this.$refs.FlowCard.getRadioRecord();
+      if (!data) { this.$message.error("请选择流转卡"); return false }
+      this.$refs.print.PrintShow = true
+      this.$refs.print.processListBtn = "none"
+      this.$refs.print.table = {}
+      this.$refs.print.isReprint = true
+      this.$refs.print.idKey = "id"
+      let id = { "id": data.id }
+      this.api.production.Task.GetPrintData(id).then(res => {
+        if (res.data.code == 200) {
+          this.$nextTick(() => { this.$refs.print.table = res.data.data; this.$refs.print.table.iquantity = this.$refs.print.table.quantity; })
+        } else {
+          this.$message.error(res.data.message)
+        }
+      })
+    },
+  }
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+</style>

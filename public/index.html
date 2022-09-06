@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title>冠达星信息系统</title>
+<style scoped>
+	*{
+	   padding: 0;
+	margin: 0;
+	}
+	html,
+	body,
+	#app{
+		width: 100vw;
+		height: 100vh;
+		overflow: hidden;
+	}
+	.loading_warpper{
+		width: 500px;
+		position: relative;
+		margin: 0 auto;
+		top: 40%;
+	}
+	.loading_text{
+		padding-top: 8px;
+		text-align: center;
+		font-weight: 700;
+		font-size: 28px;
+	}
+  .intersecting-circles-spinner, .intersecting-circles-spinner * {
+        box-sizing: border-box;
+      }
+  
+      .intersecting-circles-spinner {
+        height: 90px;
+        width: 90px;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+		margin: 0 auto;
+		
+      }
+  
+      .intersecting-circles-spinner .spinnerBlock {
+        animation: intersecting-circles-spinners-animation 1200ms linear infinite;
+        transform-origin: center;
+        display: block;
+        height: 35px;
+        width: 35px;
+      }
+  
+      .intersecting-circles-spinner .circle {
+        display: block;
+        border: 2px solid #37A0F9;
+        border-radius: 50%;
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(1) {
+        left: 0;
+        top: 0;
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(2) {
+        left: calc(35px * -0.36);
+        top: calc(35px * 0.2);
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(3) {
+        left: calc(35px * -0.36);
+        top: calc(35px * -0.2);
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(4) {
+        left: 0;
+        top: calc(35px * -0.36);
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(5) {
+        left: calc(35px * 0.36);
+        top: calc(35px * -0.2);
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(6) {
+        left: calc(35px * 0.36);
+        top: calc(35px * 0.2);
+      }
+  
+      .intersecting-circles-spinner .circle:nth-child(7) {
+        left: 0;
+        top: calc(35px * 0.36);
+      }
+  
+      @keyframes intersecting-circles-spinners-animation {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+  </style>
+  </head>
+
+  
+  <body>
+	 
+    <div id="app">
+	 <div class="loading_warpper">
+		<div class="intersecting-circles-spinner">
+		  <div class="spinnerBlock">
+		    <span class="circle"></span>
+		    <span class="circle"></span>
+		    <span class="circle"></span>
+		    <span class="circle"></span>
+		    <span class="circle"></span>
+		    <span class="circle"></span>
+		    <span class="circle"></span>
+		  </div>
+		</div>
+		  <p class="loading_text">正在进入冠达星信息系统</p>
+	 </div>
+	</div>
+ 
+  </body>
+</html>
+<script>
+  // ie提示
+  (function () {
+    var ua = navigator.userAgent.toLocaleLowerCase();
+    var browserType = "", browserVersion = "";
+    if (ua.match(/msie/) != null || ua.match(/trident/) != null) {
+      browserType = "IE";
+      browserVersion = ua.match(/msie ([\d.]+)/) != null ? ua.match(/msie ([\d.]+)/)[1] : ua.match(/rv:([\d.]+)/)[1];
+      if ((1 * browserVersion) < 12) {
+		  // window.location.href="www.baidu.com";
+        alert("您的浏览器版本过低，推荐使用谷歌浏览器")
+		
+      }
+    }
+  })();
+</script>

@@ -1,0 +1,259 @@
+<template>
+	<el-container>
+		<el-header>
+			<el-col>
+				<ul style="display: flex;list-style: none;height: 40px;margin-top: 13px;">
+					<li>
+						<el-input v-model="search.item_no" placeholder="请输入产品编码"  size="small"></el-input>
+					</li>
+					<li>
+						<el-button type="primary" icon="el-icon-search" size="small" @click="page_list()">搜索</el-button>
+					</li>
+					<li>
+						<el-button type="primary" icon="el-icon-delete" size="small" @click="SetAudit"  v-has="['state']">还原(将关闭状态变成审核)</el-button>
+					</li>
+					<li>
+						<el-button type="warning" icon="el-icon-delete" size="small" @click="excel"  v-has="['export']">自定义日期导出</el-button>
+					</li>
+				</ul>
+			</el-col>
+		</el-header>
+		<el-main>
+			<div class="accessory-result-page accessory-page">
+			        <div class="accessory-list col-4">
+			          <ul>
+			            <li class="item" v-for="item in goodsList" :key="item.id" >
+			              <div class="pic" >
+			                    <img v-lazy="item.imgUrl?item.imgUrl:'1'" style="height: 300px;width: 300px;" />
+			              </div>
+			              <div class="main">
+			                <div class="item_no productInfo">
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">ITEM NO:</label>
+								</div>
+								<div>
+									<span>{{item.item_no}}</span>
+								</div>
+							</div>
+							<div class="item_no productInfo">
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">MOQ:</label>
+								</div>
+								<div>
+									<span>{{item.moq}}</span>
+								</div>
+							</div>
+							<div class="package productInfo">
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">PACKAGE:</label>
+								</div>
+								<div>
+									<span>{{item.package}}</span>
+								</div>
+							</div>
+							<div class="productInfo">
+							
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">CBM:</label>
+								</div>
+								<div>
+									<span>{{item.outer_ctn_cbm}}</span>
+								</div>
+							</div>
+							<div class="productInfo">
+								<div class="label">
+								    <label for="">QTY(PCS)/OUTER CTN:</label>
+								</div>
+								<div>
+									<span>{{item.outer_qty}}</span>
+								</div>
+								
+							</div>
+							<div class="prince productInfo">
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">PACKAGE(＄):</label>
+								</div>
+								<div style="flex:1;">
+									<span>{{item.price}}</span>
+								</div>
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">QTY/INNER:</label>
+								</div>
+								<div style="flex:1;">
+									<span>{{item.inner_qty}}</span>
+								</div>
+							</div>
+						
+							<div class="productInfo">
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">20'GP(pcs):</label>
+								</div>
+								<div style="flex: 1;">
+									<span>{{item.gp}}</span>
+								</div>
+								<div class="label" style="flex: 0 0 80px;">
+								    <label for="">40'HQ(pcs):</label>
+								</div>
+								<div style="flex: 1;">
+									<span>{{item.hq}}</span>
+								</div>
+							</div>
+							<div class="productInfo">
+								<div class="label" style="flex: 0 0 40px;">
+								    <label for="">L:</label>
+								</div>
+								<div style="flex: 1">
+									<span>{{item.inner_box_size_l}}</span>
+								</div>
+								<div class="label" style="flex: 0 0 40px;">
+								    <label for="">W:</label>
+								</div>
+								<div style="flex: 1">
+									<span>{{item.inner_box_size_w}}</span>
+								</div>
+								<div class="label" style="flex: 0 0 40px;">
+								    <label for="">H:</label>
+								</div>
+								<div style="flex: 1">
+									<span>{{item.inner_box_size_h}}</span>
+								</div>
+							</div>
+							<div class="productInfo">
+								<div class="label"  style="flex: 0 0 40px;">
+								    <label for="">L:</label>
+								</div>
+								<div style="flex: 1">
+									<span>{{item.outer_ctn_l}}</span>
+								</div>
+								<div class="label"  style="flex: 0 0 40px;">
+								    <label for="">W:</label>
+								</div>
+								<div style="flex: 1">
+									<span>{{item.outer_ctn_w}}</span>
+								</div>
+								<div class="label"  style="flex: 0 0 40px;">
+								    <label for="">H:</label>
+								</div>
+								<div style="flex: 1">
+									<span>{{item.outer_ctn_h}}</span>
+								</div>
+							</div>
+						    <div>
+								<div class="label"  style="flex: 1;">
+								    <label for="">PRODUCT INFORMATION:</label>
+									
+								</div>
+								<div >
+									<vxe-textarea v-model="item.product" rows="60" disabled resize="none"   ></vxe-textarea>
+								</div>
+							</div>
+					
+			                <div class="btn-area">
+			                  <a href="javascript:;" class="btn btn--m" >＋加入报价单</a>
+			                </div>
+			              </div>
+			            </li>   
+			          </ul>
+			          <!-- 分页       -->
+			         <!--  <div v-infinite-scroll="loadMore" infinite-scroll-disabled="busy" nfinite-scroll-distance="20">
+			             <img src="./../../static/loading-svg/loading-spinning-bubbles.svg" v-show="loading">
+			           </div> -->
+			        </div>
+			</div>
+		</el-main>
+	  
+	</el-container>
+</template>
+
+<script>
+export default{
+	data(){
+		return{
+			search:{},
+			goodsList:[],
+		}
+	},
+	mounted() {
+		this.page_list();
+	},
+	methods:{
+		page_list: function() {
+		  this.api.trade.PriceSheet.GetList(this.search).then(res => {
+		    if(res.data.code==200){
+	            this.goodsList=res.data.data.rows
+		    }
+		  });
+		},
+	}
+}
+</script>
+
+<style scoped lang="less">
+/* @import url("css/PriceSheet.css"); */
+.el-header{
+	border-bottom: #ccc 1px solid ;
+}
+.accessory-list ul{
+	display: flex;
+	width: 100%;
+	flex-wrap: wrap;
+	justify-content:space-between;
+}
+.accessory-list ul li{
+	overflow: hidden;
+	list-style: none;
+	margin-right: 30px;
+	margin-bottom: 20px;
+	flex: 0 0 300px;
+	cursor: pointer;
+	border: 2px solid #e9e9e9;
+	/* padding-bottom: 10px; */
+	-webkit-transition: all .5s ease-out;
+	transition: all .5s ease-out;
+}
+.accessory-list ul li:hover{
+	 border-color: #ee7a23;
+	  -webkit-transform: translateY(-5px);
+	  -ms-transform: translateY(-5px);
+	  transform: translateY(-5px);
+	  -webkit-box-shadow: 0 0 10px #999;
+	  box-shadow: 0 0 10px #999;
+	  -webkit-transition: all .5s ease-out;
+	  transition: all .5s ease-out;
+}
+.accessory-list .main .name {
+    height: 4em;
+    line-height: 1.25em;
+    padding-bottom: 10px;
+    font-family: "moderat", sans-serif;
+    font-weight: bold;
+    overflow: hidden;
+}
+.btn-area{
+	text-align: center;
+	background-color: #ee7a23;
+	padding: 10px 0;
+	a{
+		color: #fff;
+		font-weight: 500;
+	}
+}
+.productInfo{
+	margin: 6px 2px;
+	display: flex;
+	border: 1px solid  #e9e9e9 ;
+	border-left: none ;
+	.label{
+		border-left: 1px solid  #e9e9e9 ;
+		border-right: 1px solid  #e9e9e9 ;
+		background-color: rgb(245, 247, 250);
+		text-align: center;
+		font-size: 12px;
+		line-height: 23px;
+		color: rgb(144, 147, 153);
+	}
+}
+/deep/.vxe-textarea--inner{
+	height: 81px !important;
+}
+</style>

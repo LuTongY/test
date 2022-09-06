@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title>冠达星信息系统</title>
+ 
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  </body>
+</html>
+<script>
+  // ie提示
+  (function () {
+   
+    var ua = navigator.userAgent.toLocaleLowerCase();
+	 console.log(ua);
+    var browserType = "", browserVersion = "";
+    if (ua.match(/msie/) != null || ua.match(/trident/) != null) {
+      browserType = "IE";
+      browserVersion = ua.match(/msie ([\d.]+)/) != null ? ua.match(/msie ([\d.]+)/)[1] : ua.match(/rv:([\d.]+)/)[1];
+      if ((1 * browserVersion) < 12) {
+		  // window.location.href="www.baidu.com";
+        alert("您的浏览器版本过低，推荐使用谷歌浏览器")
+		
+      }
+    }
+  })();
+</script>

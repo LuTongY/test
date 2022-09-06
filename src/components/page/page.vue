@@ -1,0 +1,61 @@
+<template>
+	<div class="block">
+		          <el-pagination
+		                      @size-change="handleSizeChange"
+		                      @current-change="pageChange"
+		                      @prev-click="page_click('priv')"
+		                      @next-click="page_click('next')"
+							  :default-page-size="page_size"
+		                      :current-page="page"
+		                      :page-sizes="pageSizes"
+		                      :layout="layout"
+		                      :total="totalCount">
+		             </el-pagination>
+		     </div>
+</template>
+<script>
+	export default{
+		props:{
+			totalCount:{
+				type:Number,
+				default:20,
+			},
+			pageSizes:{
+				type:Array,
+				default:[5,20,50,100,200]
+			},
+			pageSize:{
+				type:Number,
+			}
+		},
+		components:{},
+		data(){
+			return{
+				 page:1,
+				 page_size:this.pageSize?this.pageSize:20,
+				 layout:"total, sizes, prev, pager, next, jumper"
+			}
+		},
+		mounted() {
+		},
+		methods:{
+			pageChange(val){
+			        this.page=val
+					 this.$emit('page_list');
+			      },
+			handleSizeChange(val){
+			          console.log(this.page_size,val)
+			          this.page_size=val
+					  this.$emit('page_list')
+			      },
+		    page_click(opt){
+			},
+
+		},
+	}
+</script>
+<style lang='less' scoped>
+/deep/.el-input__suffix-inner i, .el-input__prefix i{
+	height:28px !important;
+}
+</style>

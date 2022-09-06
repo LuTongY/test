@@ -1,0 +1,179 @@
+<template>
+	<div v-dialogdrag>
+		<el-dialog title="派工" v-model="is_show" width="1200px">
+			<el-container>
+				<el-main>
+					<el-row style="padding-bottom: 5px;">
+						<el-col :span="12">物料名称:{{ titleData.invName }}</el-col>
+						<el-col :span="4">订单总加工量:{{ titleData.quantity }}</el-col>
+						<el-col :span="4">可派工数量:{{ getDate.remainQty }}</el-col>
+						<el-col :span="4">工序名称:{{ titleData.processName }}</el-col>
+					</el-row>
+					<el-divider></el-divider>
+					<el-row>
+						<el-col :span="11" style="border-right: 1px solid #ccc;padding-right: 10px;margin-right: 10px;">
+							<el-row style="height: 40px;line-height: 40px;">
+								<el-col :span="24" style="text-align: center;">已派记录</el-col>
+							</el-row>
+							<vxe-table :data="getDate.assignList" highlight-current-row highlight-hover-row
+								height="600px" border="full" show-footer-overflo>
+
+								<vxe-column field="staffName" title="员工" width="90px"></vxe-column>
+								<vxe-column field="produceDate" title="日期" width="120px"></vxe-column>
+								<vxe-column field="machineName" title="设备" width="90px"></vxe-column>
+								<vxe-column field="quantity" title="数量" width="90px" align="center"></vxe-column>
+								<vxe-column title="操作" width="90px" align="center">
+									<template #default="{ row }">
+										<el-button type="danger" disabled size='mini' v-if="row.disabled">删除</el-button>
+										<el-button type="danger" size='mini' @click="Delete(row)" v-else>删除</el-button>
+									</template>
+								</vxe-column>
+							</vxe-table>
+						</el-col>
+						<el-col :span="12">
+							<el-row style="height: 40px;line-height: 40px;">
+								<el-col :span="22">
+									<vxe-button icon="fa fa-plus" @click="BtnEvent('add')"></vxe-button>
+									<vxe-button icon="fa fa-minus" @click="BtnEvent('remove')"></vxe-button>
+
+								</el-col>
+								<el-col :span="2">
+									<vxe-button icon="fa fa-save" status="primary" @click="submit">提交</vxe-button>
+								</el-col>
+								<vxe-table :data="form" highlight-current-row highlight-hover-row height="600px"
+									border="full" ref="forms" show-footer-overflo
+									:checkbox-config="{ checkField: 'checked', trigger: 'cell', highlight: true }">
+									<vxe-column type="checkbox" width="50" align="center"></vxe-column>
+									<vxe-column field="workNo" title="员工" width="160px">
+										<template #default="{ row, rowIndex }">
+											<el-select v-model="form[rowIndex].workNo" placeholder="请选择" size="mini">
+												<el-option v-for="(item, index) in getDate.staffs" :key="item.index"
+													:label="item" :value="index">
+												</el-option>
+											</el-select>
+										</template>
+									</vxe-column>
+									<vxe-column field="date" title="日期" width="140px">
+										<template #default="{ row, rowIndex }">
+											<vxe-input v-model="form[rowIndex].date" placeholder="加工日期" type="date"
+												class="data"></vxe-input>
+										</template>
+									</vxe-column>
+									<vxe-column field="equipId" title="设备" width="130px">
+										<template #default="{ row, rowIndex }">
+											<el-select v-model.trim="form[rowIndex].equipId" placeholder="请选择"
+												size="mini">
+												<el-option label="暂无" value="0"
+													:disabled="getDate.equipments ? true : false"></el-option>
+												<el-option v-for="(item, index) in getDate.equipments" :key="item.index"
+													:label="item" :value="index">
+												</el-option>
+											</el-select>
+										</template>
+									</vxe-column>
+									<vxe-column field="quantity" title="数量" width="120px" align="center">
+										<template #default="{ row, rowIndex }">
+											<vxe-input v-model="form[rowIndex].number" placeholder="数量" type="number"
+												class="data" min="0"></vxe-input>
+										</template>
+									</vxe-column>
+								</vxe-table>
+							</el-row>
+						</el-col>
+					</el-row>
+
+				</el-main>
+			</el-container>
+		</el-dialog>
+	</div>
+</template>
+
+<script>
+export default {
+	data() {
+		return {
+			is_show: false,
+			getDate: {},
+			form: [{}],
+			titleData: '',
+			remainQty: 0,
+		};
+	},
+	methods: {
+		BtnEvent(option) {
+			let iform = this.form.slice()
+			if (option == 'add') {
+				iform.push({});
+				this.form = iform
+			}
+			else if (option == 'remove') {
+				let arr = []
+				iform.forEach((item, index) => {
+					if (item.checked != true) { arr.push(item) }
+				})
+				this.form = arr
+			}
+		},
+		Delete(row) {
+			this.$confirm("确认要删除吗", "提示", {
+				confirmButtonText: "确定",
+				cancelButtonText: "取消",
+				type: "warning"
+			}).then(() => {
+				this.api.production.Assign.Delete(row.id).then(res => {
+					if (res.data.code == 200) {
+						this.getDate.remainQty = parseInt(this.getDate.remainQty) + parseInt(row.quantity)
+						let arr = this.getDate.assignList.slice();
+						arr.splice(arr.findIndex((v) => { return v.id == row.id }), 1)
+						this.getDate.assignList = arr
+						this.$emit("page_list")
+						this.$message.success(res.data.message)
+					} else {
+						this.$message.error(res.data.message)
+					}
+				})
+			});
+
+		},
+		submit() {
+			let num = 0
+			for (let i = 0; i < this.form.length; i++) {
+				if (this.verify(this.form[i], i) == false) { return false }
+				if (!this.form[i].number || this.form[i].number == '') { this.form[i].number = 0 }
+				this.form[i].id = this.getDate.id
+				num += Math.abs((this.form[i].number))
+			}
+			if (this.getDate.remainQty < num) { this.$message.error("已超出需加工总量"); return false }
+			this.api.production.Assign.Dispatch(this.form).then(res => {
+				if (res.data.code == 200) {
+					this.$emit("page_list")
+					this.is_show = false
+					this.$message.success(res.data.message)
+				} else {
+					this.$message.error(res.data.message)
+				}
+			})
+		},
+		verify: function (obj, index) {
+			let is;
+			let newObj = {};
+			for (let key in obj) {
+				if (obj['workNo'] == null || !obj['workNo']) { this.$message.error(`第${index + 1}行员工为空`); is = false; break; }
+				else if (obj['date'] == null || !obj['date']) { this.$message.error(`第${index + 1}行日期为空`); is = false; break; }
+				else if (this.getDate.equipments.length && (obj['equipId'] == null || !obj['equipId'])) { this.$message.error(`第${index + 1}行机台为空`); is = false; break; }
+				else if (obj['number'] == null || !obj['number']) { this.$message.error(`第${index + 1}行数量为空`); is = false; break; }
+				else { newObj['id'] = obj['id']; newObj['workNo'] = obj['workNo']; newObj['equipId'] = obj['equipId']; newObj['date'] = obj['date']; newObj['number'] = obj['number'] }
+			}
+			return is == false ? is : newObj;
+		},
+
+	}
+}
+</script>
+
+<style scoped>
+/deep/.el-dialog__body,
+/deep/.el-main {
+	padding-top: 0;
+}
+</style>

@@ -1,0 +1,152 @@
+<template>
+	<div v-dialogdrag>
+		<el-dialog title="批量派工" v-model="is_show" width="1200px">
+			<vxe-table :data="form" highlight-current-row highlight-hover-row height="500px" max-height="500"
+				show-overflow>
+				<vxe-column type="seq" width="50" title="行号" align="center"></vxe-column>
+				<vxe-column field="invName" title="物料名称"></vxe-column>
+				<vxe-column field="processName" title="工序名称" width="120px"></vxe-column>
+				<vxe-column field="remainQty" title="可分配数量" width="100px"></vxe-column>
+				<vxe-column field="staffName" width="160px" title="员工">
+					<template #default="{ row, rowIndex }">
+						<el-select v-model.trim="form[rowIndex].workNo" placeholder="请选择" size="mini">
+							<el-option v-for="(item, index) in row.staffs" :key="item.index" :label="item"
+								:value="index">
+							</el-option>
+						</el-select>
+					</template>
+				</vxe-column>
+				<vxe-column field="equipmentId" title="机台号" width="160px">
+					<template #default="{ row, rowIndex }">
+						<el-select v-model.trim="form[rowIndex].equipId" placeholder="请选择" size="mini">
+							<el-option label="暂无" value="0" :disabled="row.equipments ? true : false"></el-option>
+							<el-option v-for="(item, index) in row.equipments" :key="item.index" :label="item"
+								:value="index">
+							</el-option>
+						</el-select>
+					</template>
+				</vxe-column>
+				<vxe-column field="date" title="开工日期" width="160px">
+					<template #header>
+						<span>开工日期</span>
+						<el-popover placement="right" v-model:visible="PopoverVisible" width="400" trigger="click">
+							<vxe-input v-model="UpdateAllFormDate" placeholder="日期选择" type="date"
+								parse-format="yyyy-dd-MM" @change="UpdateAllForm"></vxe-input>
+							<template #reference>
+								<span style="color: #0000FF;margin-left: 8px;cursor: pointer;"
+									slot="reference">[批量]</span>
+							</template>
+						</el-popover>
+					</template>
+					<template #default="{ row, rowIndex }">
+						<el-date-picker v-model="form[rowIndex].date" type="date" placeholder="选择日期"
+							value-format="YYYY-MM-DD" size="mini">
+						</el-date-picker>
+					</template>
+				</vxe-column>
+				<vxe-column field="number" title="分配数量" width="120px">
+					<template #default="{ row, rowIndex }">
+						<vxe-input placeholder="请输入" v-model.trim="form[rowIndex].number" type="number" min="0">
+						</vxe-input>
+					</template>
+				</vxe-column>
+			</vxe-table>
+			<el-row :gutter="20" slot="footer" class="dialog-footer">
+				<el-col :offset="22" :span="4">
+					<el-button @click="Dispatch">提交</el-button>
+				</el-col>
+			</el-row>
+		</el-dialog>
+	</div>
+</template>
+<script>
+export default {
+	components: {},
+	data() {
+		return {
+			is_show: false,
+			form: [],
+			UpdateAllFormDate: '',
+			PopoverVisible: false
+		}
+	},
+	mounted() {
+
+	},
+	methods: {
+		Dispatch: function () {
+			let data = [];
+			for (let i = 0; i < this.form.length; i++) {
+				if (this.verify(this.form[i], i) == false) {
+					return false
+				} else {
+					data.push(this.verify(this.form[i], i))
+				}
+			}
+			this.api.production.Assign.Dispatch(data).then(res => {
+				if (res.data.code == 200) {
+					this.$emit("page_list")
+					this.is_show = false
+					this.$message.success(res.data.message)
+				} else {
+					this.$message.error(res.data.message)
+				}
+			})
+		},
+		verify: function (obj, index) {
+			console.log(obj)
+			let is
+			let newObj = {}
+			for (let key in obj) {
+				if (obj['id'] == null || !obj['id']) { this.$message.error(`第${index + 1}行id为空`); is = false; break; }
+				else if (obj['workNo'] == null || !obj['workNo']) { this.$message.error(`第${index + 1}行员工为空`); is = false; break; }
+				else if (obj['equipments'].length > 0 && (obj['equipId'] == null || !obj['equipId'])) { this.$message.error(`第${index + 1}行机台为空`); is = false; break; }
+				else if (obj['date'] == null || !obj['date']) { this.$message.error(`第${index + 1}行日期为空`); is = false; break; }
+				else if (obj['number'] == null || !obj['number']) { this.$message.error(`第${index + 1}行数量为空`); is = false; break; }
+				else if (parseInt(obj['remainQty']) < parseInt(obj['number'])) { this.$message.error(`第${index + 1}行派工数量大于可派量`); is = false; break; }
+				else { newObj['id'] = obj['id']; newObj['workNo'] = obj['workNo']; newObj['equipId'] = obj['equipId']; newObj['date'] = obj['date']; newObj['number'] = obj['number'] }
+			}
+			return is == false ? is : newObj;
+		},
+		UpdateAllForm: function () {
+			this.form.forEach((item, index) => {
+				item.date = this.UpdateAllFormDate
+			})
+			this.PopoverVisible = false
+		},
+		initialization: function () {
+			console.log(this.form);
+			this.form.forEach((item, index) => {
+				//填充默认机台号
+				if (!item.equipments) { item.equipId = "0" }
+				//设置默认数量
+				item.number = item.remainQty
+			})
+		}
+	},
+}
+</script>
+<style scoped>
+/deep/.el-input__inner {
+	width: 135px !important;
+}
+
+/deep/.el-input__prefix i {
+	height: 28px !important;
+}
+
+/deep/.el-dialog__body {
+	padding-top: 0;
+	height: 550px;
+	padding-bottom: 10px;
+}
+
+.el-row {
+	margin-top: 10px;
+}
+
+/deep/.el-input__suffix-inner i,
+.el-icon-date {
+	height: 28px;
+}
+</style>

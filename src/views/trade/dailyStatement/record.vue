@@ -1,0 +1,551 @@
+<template>
+ <div v-dialogdrag>
+    <el-dialog :title='title' v-model="is_show" :width="width" destroy-on-close top="7vh">
+		<div>
+			<div class='date'>
+				<span>{{date}}</span>
+			</div>
+			
+			<!-- 收到询盘邮件情况 -->
+			<div>
+				<el-scrollbar :max-height="scrolHeight">
+			<table >
+				<thead >
+					<tr>
+						<td :colspan='3'>
+							<span class="title">收到询盘邮件情况</span>
+							<span style="color: red;">[必填]</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('inquiryMail')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.inquiryMail.length>0">
+						<td style="width:40%">
+							<span>询盘数量</span>
+							<span style="color:red">[数字]</span>
+						</td>
+						<td style="width:40%">客户名称</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody >
+					<tr v-for="(item,index) in data.inquiryMail">
+						<td><input type="number" v-model="item.quantity"></td>
+						<td><input type="text" v-model="item.customer"></td>	
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('inquiryMail',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			<!-- 发出报价邮件情况	 -->
+			
+			<table >
+				<thead>
+					<tr>
+						<td :colspan='3'>
+							<span class="title">发出报价邮件情况</span>
+							<span style="color: red;">[必填]</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('quotationMail')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.quotationMail.length>0">
+						<td style="width:40%">
+							<span>发出报价数量</span>
+							<span style="color:red">[数字]</span>
+						</td>
+						<td style="width:40%">客户名称</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody>
+					<tr v-for="(item,index) in data.quotationMail" :key="index">
+						<td><input type="number" v-model="item.quantity" @change="sumMain"></td>
+						<td><input type="text" v-model="item.customer"></td>	
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('quotationMail',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+
+
+	<!-- 推荐邮件情况		 -->
+			
+			<table >
+				<thead>
+					<tr>
+						<td :colspan='3'>
+							<span class="title">推荐邮件情况</span>
+							<span style="color: red;">[必填]</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('recommendMail')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.recommendMail.length>0">
+						<td style="width:40%">
+							<span>推荐信数量</span>
+							<span style="color:red">[数字]</span>
+						</td>
+						<td style="width:40%">推荐的品类</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody>
+					<tr v-for="(item,index) in data.recommendMail" :key="index">
+						<td><input type="number" v-model="item.quantity" @change="sumMain"></td>
+						<td><input type="text" v-model="item.category"></td>	
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('recommendMail',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			
+			<!--正常业务往来邮件发出数量-->
+					
+					<table >
+						<thead>
+							<tr>
+								<td :colspan='3'>
+									<span class="title">正常业务往来邮件发出数量</span>
+									<span style="color:red">[数字,必填]</span></td>
+							</tr>						
+						</thead>
+						<tbody>
+							<tr >
+								<td><input type="number" min=0  v-model="data.other.bussMailNum" placeholder="请输入数字" @change="sumMain" /></td>
+							</tr>
+						</tbody>
+					</table>
+			
+			
+			<!--合计每天发出邮件数量-->
+					
+			<!-- 		<table >
+						<thead>
+							<tr>
+								<td :colspan='3' >
+									<span class="title">合计每天发出邮件数量</span>
+									<span style="color:red">[数字]</span></td>
+							</tr>						
+						</thead>
+						<tbody>
+							<tr >
+								<td><input type="number" v-model="data.other.totalMailNum" placeholder="请输入数字" /></td>
+							</tr>
+						</tbody>
+					</table> -->
+				
+			<!-- 电话沟通情况 -->
+			
+			<table >
+				<thead>
+					<tr>			
+						<td :colspan='3'>
+							<span class="title">电话沟通情况</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('telContact')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.telContact.length>0">
+						<td style="width:40%">
+							<span>拨出电话个数</span>
+							<span style="color:red">[数字]</span>
+						</td>
+						<td style="width:40%">客户名称</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody>
+					<tr v-for="(item,index) in data.telContact" :key="index">
+						<td><input type="number" v-model="item.quantity"></td>
+						<td><input type="text" v-model="item.customer"></td>	
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('telContact',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			
+			<!-- 其他社媒沟通情况	 -->
+			
+			<table >
+				<thead>
+					<tr>			
+						<td :colspan='3'>
+							<span class="title">其他社媒沟通情况</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('media')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.media.length>0">
+						<td style="width:40%">
+							<span>客户个数</span>
+							<span style="color:red">[数字]</span>
+						</td>
+						<td style="width:40%">客户名称</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody>
+					<tr v-for="(item,index) in data.media" :key="index">
+						<td><input type="number" v-model="item.quantity"></td>
+						<td><input type="text" v-model="item.customer"></td>	
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('media',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			
+			<!-- 收款情况 -->
+			
+			<table >
+				<thead>
+					<tr>		
+						<td :colspan='3'>
+							<span class="title">收款情况</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('receiptBill')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.receiptBill.length>0">
+						<td style="width:40%">
+							<span>客户名称</span>	
+						</td>
+						  <td style="width:40%">
+							<span>金额</span>
+						  <span style="color:red">[数字]</span>
+						</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody>
+					<tr v-for="(item,index) in data.receiptBill" :key="index">
+						<td><input type="text" v-model="item.customer"></td>	
+						<td><input type="number" v-model="item.amount"></td>
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('receiptBill',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			<!-- 在谈订单情况	-->
+			
+			<table >
+				<thead>
+					<tr>		
+						<td :colspan='6'>
+							<span class="title">在谈订单情况</span>
+							<span style="color: red;">[必填]</span>
+							<span class="icon_add">
+								<i class="vxe-icon--plus"  @click="add('oppOrder')"></i>
+							</span>
+						</td>
+					</tr>
+					<tr v-show="data.oppOrder.length>0">
+						<td >
+							<span>客户名称</span>	
+						</td>
+						<td >
+							<span>型号</span>	
+						</td>
+						<td style="width:15%">
+							<span>数量</span>
+						  <span style="color:red">[数字]</span>
+						</td>
+						<td style="width:15%">
+							<span>金额</span>
+						  <span style="color:red">[数字]</span>
+						</td>
+						<td style="width:70px">
+							<span>翻单/新单</span>	
+						</td>
+						<td style="width:20%">操作</td>
+					</tr>
+					
+				</thead>
+				<tbody>
+					<tr v-for="(item,index) in data.oppOrder" :key="index">
+						<td><input type="text" v-model="item.customer"></td>	
+						<td><input type="text" v-model="item.standard"></td>
+						<td><input type="number" v-model="item.quantity"></td>
+						<td><input type="number" v-model="item.amount"></td>
+						<td style="width:70px">
+							<select  v-model="item.orderType">
+								<option value="无" label="无"></option>
+								<option value="翻单" label="翻单"></option>
+								<option value="新单" label="新单"></option>				
+							</select>
+						</td>
+						<td>
+							<vxe-button icon="vxe-icon--minus" size="mini" @click="del('oppOrder',index)"></vxe-button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			
+			
+			<!-- 其他工作汇报处理 -->
+			
+			<table >
+				<thead>
+					<tr>
+						<td>
+							<span class="title">其他工作汇报处理</span>
+							<span style="color: red;">[必填]</span>
+						</td>
+					</tr>				
+				</thead>
+				<tbody>
+					<tr >
+						<td>
+							 <vxe-textarea v-model="data.other.workOther" placeholder="请详细填写" resize="vertical"></vxe-textarea>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			
+			<!-- 需协助处理工作提报 -->
+			
+			<table >
+				<thead>
+					<tr>
+						<td >
+							<span class="title">需协助处理工作提报</span>
+							<span style="color: red;">[必填]</span>
+						</td>
+					</tr>			
+				</thead>
+				<tbody>
+					<tr >
+						<td>
+							 <vxe-textarea v-model="data.other.workAssist" placeholder="请详细填写" resize="vertical"></vxe-textarea>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			<!-- 明日计划 -->
+			
+			<table >
+				<thead>
+					<tr>
+						<td >
+							<span class="title">明日计划</span>
+							<span style="color: red;">[必填]</span>
+						</td>
+					</tr>			
+				</thead>
+				<tbody>
+					<tr >
+						<td>
+							 <vxe-textarea v-model="data.other.workTomorrow" placeholder="请详细填写" resize="vertical"></vxe-textarea>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			</el-scrollbar>
+		  </div>
+			
+			<div class="Footer">
+				<div class="FooterWarpper">
+				  <vxe-button size="medium" content="取消" @click="()=>{is_show=!is_show}"></vxe-button>
+				  <vxe-button size="medium" status="primary" content="提交" @click="submit"></vxe-button>
+				</div>
+			</div>
+		</div>
+	</el-dialog>
+</div>
+</template>
+<script>
+	export default{
+		props:{
+			width:{
+				type:String,
+				default:"600px",
+			},
+			FootBtn:{
+				type:Boolean,
+				default:true
+			},
+			title:{
+				type:String,
+				default:"查询"
+			}
+		},
+		components:{},
+		data(){
+			return{
+				 date:this.moment().format('YYYY-MM-DD'),
+				 data:{
+					 inquiryMail:[],
+					 media:[],
+					 quotationMail:[],
+					 receiptBill:[],
+					 recommendMail:[],
+					 telContact:[],
+					 oppOrder:[],
+					 other:{
+					 	bussMailNum:0,
+					 	totalMailNum:0,
+					 	workOther:'',
+					 	workAssist:'',	
+					 }
+				 },
+				 is_show: false,
+				 scrolHeight:'492px',
+			}
+		},
+		mounted() {
+			this.scrolHeight=parseInt(document.documentElement.clientHeight*0.75)-105+'px';
+		},
+		methods:{
+			EditInfo(){
+				this.api.trade.dailyStatement.EditInfo().then(res=>{
+					if(res.data.code==200){
+						this.data=res.data.data
+						if(Object.keys(this.data).indexOf('other')<0){this.data.other={bussMailNum:0,totalMailNum:0,workOther:'',workAssist:''}}
+					}else{
+						this.$message.error(res.data.message)
+					}
+				})
+			},
+			add(column){
+				let obj={'customer':'','quantity':''}
+				this.data[column].push(obj);
+			},
+			del(column,index){
+				this.data[column].splice(index,1)
+				this.sumMain();
+			},
+			submit(){
+				if(this.data.inquiryMail.length<1){this.$message.error("请填写收到询盘邮件情况");return false;}
+				if(this.data.quotationMail.length<1){this.$message.error("请填写发出报价邮件情况");return false;}
+				if(this.data.recommendMail.length<1){this.$message.error("请填写推荐邮件情况");return false;}
+				if(typeof(this.data.other.bussMailNum)=="undefined" ||this.data.other.bussMailNum == null){this.$message.error("请填写正常业务往来邮件发出数量");return false;}
+				if(this.data.oppOrder.length<1){this.$message.error("请填写在谈订单情况");return false;}
+				if(this.verify(this.data.other.workOther)){this.$message.error("请详细填写其他工作汇报处理");return false;}
+				if(this.verify(this.data.other.workAssist)){this.$message.error("请详细填写需协助处理工作提报");return false;}
+				if(this.verify(this.data.other.workTomorrow)){this.$message.error("请详细填写明日工作计划");return false;}
+				this.api.trade.dailyStatement.Edit(this.data).then(res=>{
+					if(res.data.code==200){
+						this.$message.success(res.data.message)
+						this.is_show=false;
+						this.$emit('page_list')
+					}
+				})
+			},
+		verify(value){
+			if(typeof(value)=="undefined" || typeof(value)==null || value.match(/^[ ]*$/) || value.length < 10){
+				return true;
+			}else{
+				return false;
+			}
+		},
+		sumMain(){	   
+			let quotationMail=0;this.data.quotationMail.quantity==null?0:parseInt(this.data.quotationMail.quantity);
+			this.data.quotationMail.forEach((item)=>{
+				quotationMail += item.quantity ==null?0:parseInt(item.quantity);
+			})
+			let recommendMail=0;
+			this.data.recommendMail.forEach((item)=>{
+				recommendMail += item.quantity ==null?0:parseInt(item.quantity);
+			})
+			this.data.recommendMail.quantity==null?0:parseInt(this.data.recommendMail.quantity);
+			let bussMailNum=this.data.other.bussMailNum==null?0:parseInt(this.data.other.bussMailNum);
+				console.log(quotationMail,recommendMail,bussMailNum)
+			this.data.other.totalMailNum=quotationMail+recommendMail+bussMailNum;
+		}
+		},
+	}
+</script>
+<style scoped lang="less">
+	.date{
+		height: 40px;
+		line-height: 40px;
+		text-align: center;
+		border: 1px solid #eee;
+		border-bottom: none;
+		font-size: 18px;
+		font-weight: 600;
+		color: #000;
+	};
+	table{
+		    border-collapse: collapse;
+		     width: 100%;
+		    border: 1px solid #eee;
+			 min-height: 25px; 
+			 line-height: 25px; 
+			 text-align: center; 
+			 border-collapse: collapse; 
+			 padding:2px;
+	}
+thead tr:first-child td{
+	background: #FAFAFA;
+	text-align: left;
+	cursor: pointer;
+	padding: 2px 0;
+	font-size: 16px;
+}
+thead tr:last-child td{
+	background: #FAFAFA;
+	border:1px solid #eee;
+}
+thead tr td {
+	.title{
+		padding-left:10px ;
+	};
+	.icon_add{
+		float: right;
+		margin-right:20px;
+	}
+}
+ /deep/ .el-dialog__body{
+	padding: 10px 20px;
+}
+i{
+	text-align: right;
+}
+tbody td{
+	border:1px solid #eee;
+	padding: 5px 2px;
+}
+td input{
+	width: 100%;
+	height: 100%;
+	text-indent: 1em;
+	border: none;
+	outline: none;
+	background-color: rgba(0, 0, 0, 0);
+
+}
+.Footer{
+	padding: 8px 0;
+}
+.FooterWarpper{
+	text-align: right;
+}
+</style>
+

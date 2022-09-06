@@ -1,0 +1,118 @@
+<template>
+<div  v-dialogdrag id='edit'>
+	<el-dialog title="修改工序"  v-model="is_show"  width="450px">
+	<el-form :model="roleForm" :rules="rules" ref="roleForm" label-width="100px" class="demo-ruleForm">
+			 <el-form-item label="工序名称" prop="name" >
+			     <el-input v-model="roleForm.name"  size="small"></el-input>
+			   </el-form-item>
+               <el-form-item label="是否派工" >
+                   <el-radio-group v-model="roleForm.isAssign">
+                    <el-radio :label="1">是</el-radio>
+					<el-radio :label="0">否</el-radio>
+                  </el-radio-group>
+			   </el-form-item>
+                    <el-form-item label="是否报工" >
+                   <el-radio-group v-model="roleForm.isReportWork">
+                    <el-radio :label="1">是</el-radio>
+					<el-radio :label="0">否</el-radio>
+                  </el-radio-group>
+			   </el-form-item>
+               <el-form-item  label="生产车间">
+                   <el-select v-model="roleForm.workshopId"  placeholder="请选择车间" size="small">
+						<el-option v-for="(item,key) in options.workshops" :label="item" :value="key" :key="key">
+						</el-option>
+					</el-select>
+               </el-form-item>
+                    <el-form-item  label="报工类型">
+                   <el-select v-model="roleForm.reportWorkType"  placeholder="请选择报工类型" size="small">
+						<el-option v-for="(item,key) in options.reportWorkTypes" :label="item" :value="key" :key="key">
+						</el-option>
+					</el-select>
+               </el-form-item>
+			   <el-form-item label="状态" >
+			      <el-radio-group v-model="roleForm.status" size="small">
+                    <el-radio :label="1">正常</el-radio>
+					<el-radio :label="0">关闭</el-radio>
+                  </el-radio-group>
+               </el-form-item>
+              <el-form-item label="换算">
+			     <el-input v-model="roleForm.isConvert"  size="small"></el-input>
+			   </el-form-item>
+               <el-form-item label="额定时间" >
+			     <el-input v-model="roleForm.quotaHour"  size="small"></el-input>
+			   </el-form-item>
+               <el-form-item label="排序号">
+			     <el-input v-model="roleForm.sorts"  size="small"></el-input>
+			   </el-form-item>
+			    <el-form-item>
+			       <el-button type="primary" @click="submitForm('roleForm')">确认</el-button>
+			       <el-button @click="is_show=false">取消</el-button>
+			     </el-form-item>
+	</el-form>
+	</el-dialog>
+</div>
+</template>
+<script>
+	export default{
+		components:{
+			
+		},
+		data(){
+			return{
+                options:{},
+				is_show:false,
+				select_id:'',
+				roleForm:{
+					name:'',
+					place:'',
+                    status:1,
+                    isSwipeCard:1,
+					isReportWork:1,
+					},
+				id:0,
+				rules:{
+					name: [{ required: true, message: '请输入内容', trigger: 'blur' },],
+				}
+				
+			}
+		},
+		mounted() {
+			
+		},
+		methods:{
+			submitForm(formName) {
+                console.log(this.roleForm)
+			        this.$refs[formName].validate((valid) => {
+			          if (valid) {
+			             this.api.production.Process.edit(this.roleForm,this.select_id).then((res)=>{
+							 if(res.data.code==200){
+								 this.is_show=!this.is_show
+								 this.$message.success('更新成功')
+								 this.$emit('page_list');
+								
+							 }else{
+								 this.$message.error(res.data.message)
+							 }
+							
+						 })
+			          } else {
+			            console.log('error submit!!');
+			            return false;
+			          }
+			        });
+				  },
+			
+		},
+	}
+</script>
+<style lang='less' scoped="scoped">
+ #edit .el-input__inner{
+    width: 215px;
+}
+#edit .el-form-item{
+    margin-bottom: 10px;
+}
+#edit .el-input__suffix-inner i, .el-input__prefix i{
+    height: 32px;
+}
+</style>

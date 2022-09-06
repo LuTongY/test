@@ -1,0 +1,193 @@
+<template>
+	<el-container>
+		<el-header>
+			<vxe-toolbar ref="ScheduleToolbar" custom print export>
+				<template #buttons>
+					<vxe-button status="primary" @click="searchClick">查询</vxe-button>
+				</template>
+			</vxe-toolbar>
+		</el-header>
+		<el-main>
+			<vxe-table :data="tableData" highlight-current-row highlight-hover-row height="60%" keep-source
+				border="full" :print-config="{}" show-overflow
+				:edit-config="{ trigger: 'click', mode: 'cell', showStatus: true, icon: 'fa fa-pencil' }" ref="Schedule"
+				:auto-resize="$store.state.autoResize" resizable show-footer :footer-method="GetfooterData"
+				:checkbox-config="{ checkField: 'checked', trigger: 'row', range: true, highlight: true, }">
+				<vxe-column type="expand" width="40">
+					<template #content="{ row }">
+						<vxe-grid :columns="row.childCols" :data="row.childData" :auto-resize="$store.state.autoResize"
+							highlight-current-row highlight-hover-row></vxe-grid>
+					</template>
+				</vxe-column>
+				<vxe-column field="standard" title="规格"></vxe-column>
+			</vxe-table>
+			<vxe-table :data="statData" highlight-current-row highlight-hover-row height="35%" style="margin-top:1%;"
+				keep-source border="full" :print-config="{}" show-overflow
+				:edit-config="{ trigger: 'click', mode: 'cell', showStatus: true, icon: 'fa fa-pencil' }"
+				ref="Schedule2" :auto-resize="$store.state.autoResize" resizable show-footer
+				:checkbox-config="{ checkField: 'checked', trigger: 'row', range: true, highlight: true }">
+				<vxe-column type="expand" width="40">
+					<template #content="{ row }">
+						<vxe-grid :columns="row.childCols" :data="row.childData" :auto-resize="$store.state.autoResize"
+							highlight-current-row highlight-hover-row></vxe-grid>
+					</template>
+				</vxe-column>
+				<vxe-column field="type" title="形状"></vxe-column>
+			</vxe-table>
+		</el-main>
+		<div v-dialogdrag v-if="searchShow">
+			<el-dialog title='查询' v-model="searchShow" width="600px">
+				<el-form :model="search" ref="searchForm" label-width="120px" class="demo-ruleForm">
+					<el-form-item label="排程日期">
+						<el-date-picker v-model="search.produceDate" type="daterange" range-separator="至"
+							start-placeholder="开始日期" end-placeholder="结束日期" size="medium" format="YYYY-MM-DD"
+							value-format="YYYY-MM-DD" />
+					</el-form-item>
+					<el-form-item label="形状">
+						<el-select v-model="search.type" placeholder="请选择" size="small">
+							<el-option label="全部" value="" />
+							<el-option v-for="(item, key) in typeList" :label="item" :value="key" :key="key" />
+						</el-select>
+					</el-form-item>
+					<el-form-item label="规格">
+						<vxe-input v-model.trim="search.standard"></vxe-input>
+					</el-form-item>
+					<el-form-item label="成品名称">
+						<vxe-input v-model.trim="search.productName"></vxe-input>
+					</el-form-item>
+					<el-form-item label="厚度">
+						<vxe-input v-model.trim="search.thickness"></vxe-input>
+					</el-form-item>
+				</el-form>
+				<p style="text-align: center;">
+					<el-button type="primary" icon="el-icon-search" class="load_bt" @click="doSearch">查询</el-button>
+				</p>
+			</el-dialog>
+		</div>
+	</el-container>
+</template>
+<script>
+export default {
+	name: "SchedulePipeStat",
+	data() {
+		return {
+			search: {},
+			totalCount: 0,
+			tableData: [],
+			statData: [],
+			select_id: "",
+			auto: true,
+			footerData: [],
+			footerSumName: ['quantity', 'qualifiedQty'], //需要合计的列
+			searchShow: false,
+			typeList: [],
+		};
+	},
+	mounted() {
+		this.page_list();
+	},
+	created() {
+		this.$nextTick(() => {
+			// 手动将表格和工具栏进行关联
+			this.$refs.Schedule.connect(this.$refs.ScheduleToolbar)
+		})
+	},
+	methods: {
+		searchClick: function () {
+			this.searchShow = true;
+		},
+		GetfooterData: function ({ columns, data }) {
+			this.footerData = []
+			let sumObj = {}
+			let arr = []
+			for (let i = 0; i < this.footerSumName.length; i++) {
+				sumObj[this.footerSumName[i]] = 0;
+			}
+			data.forEach((item, index) => {
+				for (let obj in sumObj) {
+					if (!isNaN(item[obj]) && item.hasOwnProperty(obj)) {
+						sumObj[obj] += parseInt(item[obj])
+					}
+				}
+			})
+			columns.forEach((item, index) => {
+				if (index == 1) {
+					arr.push('合计')
+				} else if (this.footerSumName.indexOf(item.property) > -1) {
+					arr.push(sumObj[item.property])
+				} else {
+					arr.push("-")
+				}
+			})
+			this.footerData.push(arr)
+			return this.footerData
+		},
+		page_list: function () {
+			this.api.production.SchedulePipe.GetStatList(this.search).then(res => {
+				if (res.data.code == 200) {
+					let dataList = res.data.data.dataList;
+					let result = {};
+
+					for (let i = 0; i < dataList.length; i++) {
+						if (!result[dataList[i].standard]) {
+							result[dataList[i].standard] = {
+								standard: dataList[i].standard,
+								childCols: [
+									{ field: "standard", title: "规格", width: "100px" },
+									{ field: "type", title: "形状", width: "90px", align: "center" },
+									{ field: "product_name", title: "成品名称", width: "150px" },
+									{ field: "thickness", title: "厚度（MM）", width: "120px", align: "right" },
+									{ field: "length", title: "制管长度（米）", width: "120px", align: "right" },
+									{ field: "short_length", title: "制管数量（支）", width: "120px", align: "right" },
+									{ field: "pitch_num", title: "制管总长度（米）", width: "140px", align: "right" },
+									{ field: "qty", title: "制管总重量（公斤）", width: "150px", align: "right" },
+									{ field: "totalLength", title: "裁管长度（米）", width: "120px", align: "right" },
+									{ field: "totalWeight", title: "每支裁短管数量（支）", width: "170px", align: "right" },
+									{ field: "totalShortQty", title: "裁短管数量小计（支）", width: "170px", align: "right" },
+								],
+								childData: []
+							}
+						}
+						result[dataList[i].standard].childData.push(dataList[i]);
+					}
+					this.tableData = Object.values(result);
+
+
+					let statData = res.data.data.statData;
+					let resultStat = {};
+
+					for (let i = 0; i < statData.length; i++) {
+						if (!resultStat[statData[i].type]) {
+							resultStat[statData[i].type] = {
+								type: statData[i].type,
+								childCols: [
+									{ field: "standard", title: "规格", width: "120px" },
+									{ field: "type", title: "形状", width: "100px", align: "center" },
+									{ field: "totalLength", title: "制管总长度（米）", width: "140px", align: "right" },
+									{ field: "totalWeight", title: "制管总重量（公斤）", width: "150px", align: "right" },
+									{ field: "totalShortQty", title: "裁短管数量小计（支）", width: "170px", align: "right" },
+								],
+								childData: []
+							}
+						}
+						resultStat[statData[i].type].childData.push(statData[i]);
+					}
+					this.statData = Object.values(resultStat);
+
+					this.search.produceDate = res.data.data.search.produceDate || [];
+					this.typeList = res.data.data.typeList;
+				}
+			});
+		},
+		doSearch() {
+			this.page_list();
+			this.searchShow = false;
+		}
+	},
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+	padding: 0 20px 20px 20px;
+}
+</style>

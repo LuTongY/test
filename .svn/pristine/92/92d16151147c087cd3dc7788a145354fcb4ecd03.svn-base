@@ -1,0 +1,84 @@
+<template>
+  <div class="about grid-content bg-purple" id="storage"></div>
+</template>
+ 
+<script>
+import {onMounted,onBeforeUnmount,getCurrentInstance} from "vue";
+export default {
+  setup() {
+  	//生成表格
+  	let myChart;
+  	const _this=getCurrentInstance().appContext.config.globalProperties;
+  	const handleResizeChart=()=>{
+  			   myChart.resize()
+  	 }
+  	onMounted(()=>{
+  		window.addEventListener('resize',handleResizeChart)
+  		    // 基于准备好的dom，初始化echarts实例
+  		   myChart = _this.$echarts.init(document.getElementById("storage"));
+  		  //  绘制图表
+  			
+  			// var PvData = []
+  			// for(let i=0;i<7;i++){
+  			// 	PvData.push(parseInt(Math.random()*100))
+  			// }
+  		    myChart.setOption({
+  		    	title:{
+  		    		text:'本日入库情况'
+  		    	},
+  		    	 tooltip: {
+  		    	    trigger: 'item'
+  		    	  },
+  		    	  legend: {
+  		    	    top: '40px',
+  		    	    left: 'center'
+  		    	  },
+  		    	  series: [
+  		    	    {
+  		    	      name: '类型',
+  		    		  top:'50',
+  		    	      type: 'pie',
+  		    	      radius: ['40%', '70%'],
+  		    	      avoidLabelOverlap: false,
+  		    	      label: {
+  		    	        show: false,
+  		    	        position: 'center'
+  		    	      },
+  		    	      emphasis: {
+  		    	        label: {
+  		    	          show: true,
+  		    	          fontSize: '22',
+  		    	          fontWeight: 'bold'
+  		    	        }
+  		    	      },
+  		    	      labelLine: {
+  		    	        show: false
+  		    	      },
+  		    	      data: [
+  		    	        { value: 1048, name: '传统鞋架' },
+  		    	        { value: 735, name: '钢木鞋架' },
+  		    	        { value: 580, name: '其它家居' },
+  		    	        { value: 484, name: '备品' },
+  		    	        { value: 300, name: '钢木家具' }
+  		    	      ]
+  		    	    }
+  		    	  ]
+  		    })
+  	})
+  	onBeforeUnmount(()=>{
+  		//取消监听
+  		window.removeEventListener('resize',handleResizeChart)
+  	})
+  },
+};
+</script>
+ 
+<style  scoped>
+#storage {
+  height: calc(100% - 20px);
+  width: calc(100% - 20px);
+  background: #fff;
+  padding: 10px;
+  border-radius: 10px;
+}
+</style>

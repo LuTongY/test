@@ -1,0 +1,45 @@
+@table_body_trHeight:36px;
+@table_body_trPadding:8px;
+@itemNum:4; // 加载的数量
+.packaging{
+			border-bottom: 1px solid #eee;
+			background-color: #fff;
+			height: 100%;
+			padding: 5px;
+		}
+		.title{
+			height: 49px;
+			border-bottom: 1px solid #eee;
+			line-height: 49px;
+		}
+	.main{
+		height: calc(100% - 50px);
+		.table{
+			height: 100%;
+			color: #606266;
+			.table_body_tr:hover{
+				background-color: #F5F7FA;
+				cursor: pointer;
+			}
+			.table_header_tr,.table_body_tr{
+				border-bottom: 1px solid #eee;
+				display: flex;			
+				>div{
+					flex:1;
+					height: @table_body_trHeight;
+					padding-top: @table_body_trPadding;
+					padding-bottom: @table_body_trPadding;
+					line-height: @table_body_trHeight;
+				}
+			}
+			.table_body{
+				height: @itemNum * @table_body_trHeight +  @itemNum * 2 * @table_body_trPadding;
+				border-bottom: 1px solid #eee;
+				.table_header_tr{
+					transition: 0.3s;
+				}
+			}
+			
+		}
+		
+	}

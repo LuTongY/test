@@ -1,0 +1,72 @@
+<template>
+	<div class="title-date">
+
+		<i class="fa fa-caret-left fa-lg"   @click="getDate('prev')"> </i>
+		<vxe-input v-model="date" placeholder="日期选择" :type="type" class="data" @change="getDate" ></vxe-input>
+		<i class="fa fa-caret-right fa-lg"  @click="getDate('next')"></i>
+	</div>
+</template>
+<script>
+	export default{
+		components:{},
+		props:{
+			Pdata:{
+				type:String,
+			},
+			days:{
+				type:String,
+				default:'days'
+			},
+			format:{
+				type:String,
+				default:'YYYY-MM-DD'
+			},
+			type:{
+				type:String,
+				default:'date'
+			}
+		},
+		data(){
+			return{
+				date:this.moment().format(this.format)
+			}
+		},
+		watch:{
+			'date':{
+				deep:true,
+				handler:function(newValue, oldValue){
+					if(!newValue){
+						this.date=this.moment().format(this.format)
+						return false
+					}
+				},
+			}
+		},
+		mounted() {
+		  this.$emit('update:Pdata',this.date)
+		},
+		methods:{
+			getDate:function(option){
+				if(option=="prev"){this.date=this.moment(this.date).add(-1, this.days).format(this.format)}
+				if(option=="next"){this.date=this.moment(this.date).add(1, this.days).format(this.format)}
+				this.date=this.moment(this.date).format(this.format)
+				this.$emit('update:Pdata',this.date)
+				this.$emit("page_list")
+			}
+		},
+	}
+</script>
+<style lang="less" scoped>
+	.title-date{
+		position: absolute;
+		left: calc(50% - 110px);
+		margin: 0 auto;
+		font-size: 22px;
+	}
+	.data{
+		margin: 0 12px;
+	}
+	i{
+		cursor:pointer
+	};
+</style>

@@ -1,0 +1,132 @@
+<template>
+	<div v-dialogdrag>
+		<el-dialog title="选择制造令" v-model="is_show" width="1200px" destroy-on-close>
+			<el-form :model="form" :rules="rules" ref="saveForm" label-width="100px" class="demo-ruleForm">
+				<el-row>
+					<el-col span="12">
+						<el-form-item label="排程时间" prop="produceDate">
+							<vxe-input v-model="form.produceDate" placeholder="选择日期" type="date"></vxe-input>
+						</el-form-item>
+					</el-col>
+					<el-col span="12">
+						<el-form-item label="加工机台" prop="machineId">
+							<el-cascader :options="machineOptions"
+								:props="{ expandTrigger: 'hover', value: 'id', label: 'name' }"
+								@change="changeMachineId" />
+						</el-form-item>
+					</el-col>
+				</el-row>
+				<el-form-item label="选择制造令" prop="taskProcess">
+					<task-process-choose ref="taskChoose" mode="month" workshop="制管车间" :selectedId="form.taskIds" />
+				</el-form-item>
+				<el-form-item>
+					<el-button type="primary" @click="submitForm()">确认</el-button>
+					<el-button @click="is_show = false">取消</el-button>
+				</el-form-item>
+			</el-form>
+		</el-dialog>
+	</div>
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import TaskProcessChoose from "../TaskProcess/TaskProcessChoose.vue";
+export default {
+	components: {
+		page,
+		TaskProcessChoose,
+	},
+	data() {
+		var validateTaskProcess = (rule, value, callback) => {
+			if (!value || value.length <= 0) {
+				callback(new Error('请选择'));
+			} else {
+				callback();
+			}
+		};
+		return {
+			is_show: false,
+			search: {},
+			form: {
+				produceDate: '',
+				workcenterId: '',
+				machineId: '',
+				taskProcess: [],
+			},
+			rules: {
+				produceDate: [{ required: true, message: '请选择', trigger: 'blur' }],
+				machineId: [{ required: true, message: '请选择', trigger: 'blur' }],
+				taskProcess: [{ validator: validateTaskProcess, trigger: 'blur' }],
+			},
+			machineOptions: [],
+			totalCount: 0,
+			tableData: [],
+			select_id: "",
+			auto: true
+		};
+	},
+	methods: {
+		init() {
+			this.api.production.TaskPipe.GetInfo().then(res => {
+				if (res.data.code == 200) {
+					this.machineOptions = res.data.data.machineOptions;
+				}
+			});
+		},
+		resetData() {
+			this.form = {
+				produceDate: '',
+				workcenterId: '',
+				machineId: '',
+				taskProcess: [],
+			};
+			this.$nextTick(() => {
+				this.$refs.taskChoose.selectedIds = {};
+			})
+		},
+		changeMachineId(e) {
+			this.form.workcenterId = e[0];
+			this.form.machineId = e[1];
+		},
+		submitForm: function () {
+			console.log(this.form)
+
+			let selectedIds = this.$refs.taskChoose.selectedIds;
+			for (let i in selectedIds) {
+				if (selectedIds[i].checked) {
+					this.form.taskProcess.push({
+						id: selectedIds[i].id,
+						quantity: selectedIds[i].quantity,
+					})
+				}
+			}
+			this.$refs.saveForm.validate((valid) => {
+				if (valid) {
+					this.api.production.TaskPipe.Add(this.form).then(res => {
+						if (res.data.code == 200) {
+							this.is_show = false;
+							this.$message.success(res.data.message)
+							this.$emit('page_list')
+						}
+					})
+				} else {
+					console.log('error submit!!');
+					return false;
+				}
+			});
+		}
+	}
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+	padding: 0 20px 20px 20px;
+}
+
+/deep/.el-dialog__body {
+	padding: 10px 20px 20px 20px;
+}
+
+/deep/.is-error input {
+	border: 1px solid #f56c6c;
+}
+</style>

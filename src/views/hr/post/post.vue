@@ -1,0 +1,137 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar>
+        <template #buttons>
+          <vxe-select v-model="search.departmentId" placeholder="部门" style="margin-right: 8px;">
+            <vxe-option label="全部"></vxe-option>
+            <vxe-option v-for="(item, index) in option.departments" :key="index" :value="index" :label="item">
+            </vxe-option>
+          </vxe-select>
+          <vxe-input v-model.trim="search.name" placeholder="职位名称" style="margin-right: 8px;"></vxe-input>
+          <vxe-button status="primary" @click="page_list">搜索</vxe-button>
+          <vxe-button v-has="['add']" @click="add">新增</vxe-button>
+          <vxe-button v-has="['edit']" @click="edit">修改</vxe-button>
+          <vxe-button v-has="['delete']" @click="del">删除</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" border="full" ref="Post"
+        :auto-resize="$store.state.autoResize" @cell-click="selectId"
+        :checkbox-config="{ checkField: 'checked', trigger: 'row', range: true, highlight: true, }">
+        <vxe-column type="checkbox" width="60" align="center"></vxe-column>
+        <vxe-table-column field="name" title="职位名称" width="250px"></vxe-table-column>
+        <vxe-table-column field="departmentName" title="所属部门" width="150px"></vxe-table-column>
+        <vxe-table-column field="createUser" title="创建人" width="100px"></vxe-table-column>
+        <vxe-table-column field="createTime" title="创建日期" width="180px"></vxe-table-column>
+        <vxe-table-column field="updateUser" title="维护人" width="100px"></vxe-table-column>
+        <vxe-table-column field="updateTime" title="维护日期" width="180px"></vxe-table-column>
+      </vxe-table>
+    </el-main>
+    <el-footer>
+      <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+    </el-footer>
+    <add ref='add' @page_list="page_list" />
+    <edit ref='edit' @page_list="page_list" />
+  </el-container>
+
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import add from "./add.vue";
+import edit from "./edit.vue";
+export default {
+  name: "post",
+  components: {
+    page,
+    add,
+    edit,
+  },
+  data() {
+    return {
+      search: {},
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true,
+      option: {}
+    };
+  },
+  mounted() {
+    this.page_list();
+  },
+  methods: {
+    page_list: function () {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.hr.Post.GetList(
+        pagesize,
+        page,
+        this.search
+      ).then(res => {
+        this.tableData = res.data.data.rows;
+        this.option.departments = res.data.data.departments
+        this.totalCount = parseInt(res.data.data.totalCount);
+      });
+    },
+    selectId: function (item) {
+      this.select_id = item.row.id;
+    },
+    add: function () {
+      this.$refs.add.is_show = !this.$refs.add.is_show;
+      this.$refs.add.options = this.option
+      this.$refs.add.Form = {};
+      this.api.hr.Post.EditInfo(0).then((res) => {
+        if (res.data.code == 200) {
+          this.$refs.add.options.departments = res.data.data.departments
+        } else {
+          this.$message.error("获取数据失败")
+        }
+      })
+    },
+    edit: function () {
+      let data = this.$refs.Post.getCheckboxRecords();
+      if (data.length < 1) {
+        this.$message.error("请先选择数据");
+        return false
+      } else if (data.length > 1) {
+        this.$message.error("修改只能单选"); return false
+      }
+      this.$refs.edit.is_show = !this.$refs.edit.is_show;
+      this.$refs.edit.options = this.option
+      this.$refs.edit.id = data[0].id
+      this.api.hr.Post.EditInfo(data[0].id).then((res) => {
+        if (res.data.code == 200) {
+          this.$refs.edit.Form = res.data.data.row
+          this.$refs.edit.options.departments = res.data.data.departments
+          this.$refs.edit.Form.departmentId = String(this.$refs.edit.Form.departmentId)
+        } else {
+          this.$message.error("获取数据失败")
+        }
+      })
+    },
+    del: function () {
+      let data = this.$refs.Post.getCheckboxRecords();
+      if (data.length < 1) { this.$message.error("请先选择数据"); return false }
+      let ids = [];
+      data.forEach((i, v) => { ids.push(i.id) });
+      this.$confirm("此操作将删除该数据, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        this.api.hr.Post.del(ids).then(res => {
+          this.page_list();
+          this.$message.success("删除成功");
+        });
+      });
+    }
+  }
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+</style>

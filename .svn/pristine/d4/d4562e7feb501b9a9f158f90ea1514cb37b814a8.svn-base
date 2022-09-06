@@ -1,0 +1,51 @@
+<template>
+	<div style="height: 300px;width: 300px;background-color:#282c34;">
+		<dv-border-box-1>
+			<dv-active-ring-chart :config="config" style="width:300px;height:300px" />
+		</dv-border-box-1>
+	</div>
+
+</template>
+
+<script>
+	export default {
+		data() {
+			return {
+				config: {
+						data: [
+						    {
+						      name: '周口',
+						      value: 55
+						    },
+						    {
+						      name: '南阳',
+						      value: 120
+						    },
+						    {
+						      name: '西峡',
+						      value: 78
+						    },
+						    {
+						      name: '驻马店',
+						      value: 66
+						    },
+						    {
+						      name: '新乡',
+						      value: 80
+						    }
+						  ]
+				      }
+			}
+		},
+		methods: {
+			a(){
+				 this.config.value = 90
+				 this.config.lineDash = [10, 4]
+				 this.config = { ...this.config }
+			}
+		},
+	}
+</script>
+
+<style>
+</style>

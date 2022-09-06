@@ -1,0 +1,264 @@
+<template>
+  <el-container style="height:100vh">
+    <el-header style="border-bottom: 1px solid #e3e3e3;">
+		<div style="display: flex;height: 100%;">
+			<div style="flex: 0 0 250;">
+				 <span style="font-size:22px;font-weight:700">计件工资查询平台</span>  
+			</div>
+			<div style="flex:1">
+			</div>
+			<div>
+				<span style="font-size:22px;font-weight:700" v-if="is_scan">{{exit_timer_s}}</span>  
+			</div>
+			<div style="padding: 0 8px;">
+				<el-button type="primary" @click.stop='init' v-if="is_scan">退出</el-button>
+			</div>
+			<div style="flex: 0 0 60px;">
+				<div style="height:36px;width:36px;padding:12px 8px">
+				   <svg  v-show="websocketStatus==1"  t="1661157855158" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2399" width="36" height="36"><path d="M448 661.438V1024h128V661.438z" fill="#434A54" p-id="2400"></path><path d="M362.656 0h298.688v341.328H362.656z" fill="#E6E9ED" p-id="2401"></path><path d="M597.344 768c0 23.562-19.124 42.688-42.688 42.688h-85.312c-23.562 0-42.688-19.124-42.688-42.688v-149.312c0-23.562 19.124-42.688 42.688-42.688h85.312c23.562 0 42.688 19.124 42.688 42.688V768z" fill="#37BC9B" p-id="2402"></path><path d="M725.344 640.124c0 23.562-19.124 42.624-42.688 42.624H341.344c-23.562 0-42.688-19.062-42.688-42.624V213.328h426.688v426.796z" fill="#48CFAD" p-id="2403"></path><path d="M469.344 85.328h-42.688c-11.782 0-21.312 9.562-21.312 21.344S414.876 128 426.656 128h42.688c11.782 0 21.312-9.546 21.312-21.328s-9.532-21.344-21.312-21.344zM597.344 85.328h-42.688c-11.782 0-21.312 9.562-21.312 21.344S542.876 128 554.656 128h42.688c11.782 0 21.312-9.546 21.312-21.328s-9.532-21.344-21.312-21.344z" fill="#CCD1D9" p-id="2404"></path><path d="M597.406 512.75l-0.062-75.438C597.312 425.546 587.782 416 576 416s-21.344 9.546-21.344 21.328v0.016l0.062 52.578-37.562 25.016 6.688-10.032-54.562-36.328 0.062-52.562V416c0-11.782-9.562-21.328-21.344-21.328s-21.312 9.532-21.344 21.312l-0.032 75.438 73.562 49 4.718-7.094 18.938 28.422 73.564-49z" fill="#E6E9ED" p-id="2405"></path><path d="M548.406 336.922l-21.312-21.344c-3.876-3.86-9.188-6.25-15.094-6.25s-11.218 2.39-15.094 6.25l-21.312 21.344a21.188 21.188 0 0 0-6.25 15.078c0 11.782 9.532 21.328 21.312 21.328v213.36c0 11.75 9.562 21.312 21.344 21.312s21.344-9.562 21.344-21.312v-213.36c11.782 0 21.312-9.546 21.312-21.328 0-5.89-2.374-11.218-6.25-15.078z" fill="#F5F7FA" p-id="2406"></path><path d="M448 725.312c0-11.75-9.562-21.312-21.344-21.312v42.688c11.782 0 21.344-9.564 21.344-21.376zM576 725.312c0 11.812 9.562 21.376 21.344 21.376V704c-11.782 0-21.344 9.562-21.344 21.312z" opacity=".1" p-id="2407"></path></svg>
+				   <svg  v-show="websocketStatus==0" t="1661158337861" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5634" width="36" height="36"><path d="M816.952281 614.064456l-45.118858-45.118857L895.99028 447.98866a223.99433 223.99433 0 0 0-316.791981-316.791981l-124.156857 120.956938-45.118858-45.438849 122.556898-122.236906a287.99271 287.99271 0 0 1 407.029697 407.029697zM288.00567 1023.974081a287.99271 287.99271 0 0 1-203.514849-491.507559l122.556898-122.556898 45.118858 45.118858-122.556898 122.556898A223.99433 223.99433 0 0 0 448.00162 895.977321l122.556898-122.556898 45.118858 45.118858-122.556898 122.556898A285.752767 285.752767 0 0 1 288.00567 1023.974081zM137.257486 182.555379L182.50434 137.276525l255.897523 255.897523-45.246855 45.246854zM585.214147 630.544039l45.246854-45.246854 255.897523 255.897522-45.246855 45.246855z" fill="#d81e06" p-id="5635"></path></svg>
+				</div>
+			</div>
+		</div>  
+    </el-header>
+    <el-container  v-if="is_scan" style="height:calc(100% - 60px)">
+      <el-aside width="200px">
+        <div  v-for="(item,index) in menu" :key='index' :class="[actindex==index?'active':'']" @click="menuClick(index)" class="menu_item">
+            {{item}}
+       </div>
+      </el-aside>
+      <el-main style="background:#F6F8F9;">
+          <el-container style="padding-bottom:0px;height: 100%;border: 1px solid #e3e3e3;" >
+              <el-header style="height: 100px;line-height: 0px;background: #fff;">
+				<el-row style="height: 50px;padding:10px 0 20px 0">
+					<TitleDate ref="TitleDate" @page_list="page_list" v-model:Pdata="date"  :type='dateType' />
+				</el-row>
+			    <el-row style="height: 40px;line-height: 40px;font-size: 18px;font-weight: 600;">
+					<el-col :span="6">{{'姓名:'+userInfo.USER_NAME}}</el-col>
+					<el-col :span="6">{{'工号:'+userInfo.work_no}}</el-col>
+					<el-col :span="6">{{'部门:'+userInfo.dept_name}}</el-col>
+					<el-col :span="6">{{'工资合计:'+(sumList.gxgz?sumList.gxgz:0)}}</el-col>
+				</el-row>
+			  </el-header>
+              <el-main style="padding: 8px 20px;">
+				  <vxe-table :data="tableData" 
+				    highlight-current-row 
+				    highlight-hover-row 
+				    height="auto" 
+					border="full"
+					@scroll="clickOther"
+					show-footer	
+					:footer-method="GetfooterData"
+				  	show-overflow  
+					ref="salary" 
+					:print-config="{}"
+				  	:auto-resize="$store.state.autoResize">
+				  	<vxe-column field="scddh" title="生产订单号" width="150px"></vxe-column>
+					<vxe-column field="tm" title="流转卡编码" width="130px" ></vxe-column>
+				  	<vxe-column field="bjmc" title="部件名称"  ></vxe-column>
+				  	<vxe-column field="gxmc" title="工序名称"  width="130px"></vxe-column>
+				  	<vxe-column field="bzgj_bz" title="工序单价" width="120px"></vxe-column>
+				  	<vxe-column field="sl" title="报工数量" width="80px" align="right"></vxe-column>
+				  	<vxe-column field="gxgz" title="工资" width="140px" ></vxe-column>
+				  	<vxe-column field="user_name" title="报工人" width="90px"></vxe-column>
+				  </vxe-table>
+			  </el-main>
+          </el-container>
+      </el-main>
+    </el-container>
+	<el-container style="height:calc(100% - 60px)" v-else >
+	     <el-main>
+			 <div style="display: flex;height: 100%;">
+				 <div style="flex: 1;height: 100%;position: relative;">
+					 <div style="width: 100%;margin: 0 auto;top:calc(50% - 150px);position: absolute;text-align: right;">
+					    <h2>请用工牌二维码对准扫码机进行查看</h2>
+					    <h3>扫码机如右图所示</h3>
+					 </div>
+				 </div>
+				 <div style="flex: 1;height: 100%;position: relative;">
+					 <div style="height: 300px;width: 300px;margin: 0 auto;top:calc(50% - 150px);position: absolute;">
+					     <img style="height: 300px;width: 300px;"   src="http://nwzimg.wezhan.cn/contents/sitefiles2019/10097161/images/17401679.jpg" alt="">
+					 </div>
+				 </div>
+			 </div>
+		 </el-main>
+	</el-container>
+</el-container>
+  
+</template>
+
+<script>
+import TitleDate from '@/components/TitleDate/TitleDate'
+export default {
+	components:{
+		TitleDate,
+	},
+  data() {
+      return{
+		tableData:[],
+		is_scan:false,
+        websocketStatus:'0',  //0:未连接   1:已连接  
+        actindex:0,
+		websocket_status:1,  //1 开启请求  2禁止请求
+        websocket_connected: false,
+		websocket_text:'',  //扫码内容
+        socketMsg:"未连接",
+        timer: "",
+		exit_timer:'',
+		exit_timer_s:30,
+        menu:['当日工资','当月工资'],
+        websocketData:{}, //扫码
+		websocketCtrl:{}, //控制灯光
+		date:'',
+		dateType:'date',
+		userInfo:{USER_NAME:'',work_no:'',dept_name:''},
+		sumList:{},
+		footerSumName:['sl','gxgz'], //需要合计的列
+      }
+    
+  },
+  mounted(){
+      clearInterval(this.timer);
+      this.timer=setInterval(this.vbar_open, 3000);
+	  window.addEventListener("click", this.clickOther);//监听全局点击事件
+  },
+  methods:{
+    //连接VBarServer
+    vbar_open() {
+        if(this.websocketData.readyState !=1){
+        let _this=this
+        console.log("发起请求中")
+        let host = "ws://localhost:2693";
+        this.websocketCtrl = new WebSocket(host, "ctrl");  //开关灯控制
+		
+        this.websocketData = new WebSocket(host, "data");  //扫码数据
+        //建立连接后初始化
+        _this.websocketData.onopen = function(evt){_this.websocketCtrl.send("lighton");_this.websocketStatus=1;_this.timer=setInterval(this.vbar_open, 3000)};
+        //接收服务器返回数据后的动作 
+        _this.websocketData.onmessage = function(message) { _this.websocket_decode(message)};                     
+        //失败重新连接
+        _this.websocketData.onerror = function(){clearInterval(this.timer);_this.websocketStatus=0;_this.vbar_open()}
+        } 
+    },
+	page_list(){
+			this.api.notLoginViews.salary.GetList({'date':this.date,'work_no':this.websocket_text}).then((res)=>{
+				if(res.data.code==200){
+					this.userInfo=res.data.data.user;
+					this.tableData=res.data.data.list;
+					this.sumList=res.data.data.total[0];
+					this.sumList.gxgz=parseFloat(this.sumList.gxgz).toFixed(2);
+					this.is_scan=true;
+					this.websocketCtrl.send("lightoff");
+					this.exit_timer_s=30;
+					this.websocket_status=2;	
+					clearInterval(this.exit_timer);
+					this.exit_timer='';
+					this.exit_timer=setInterval(this.exit,1000)
+				}else{
+					this.websocketCtrl.send("lighton");
+				}
+			})
+	},
+	//接收扫码结果处理
+	websocket_decode(message){
+		this.websocketCtrl.send("lightoff"); //关灯
+		this.websocket_text=message.data;
+		if(this.websocket_status==1){
+			this.page_list();
+		}
+        
+	},
+	//全局倒计时
+	exit(){
+		if(this.exit_timer_s==0){
+		     this.init();
+			return false;}
+		    this.exit_timer_s = this.exit_timer_s-1;
+		
+	},
+	// 清除计时器返回主页面
+	init(){
+		clearInterval(this.exit_timer);
+		this.exit_timer='';
+		this.exit_timer_s=60;
+		this.is_scan=false;
+		this.date=this.moment().format('YYYY-MM-DD');
+		this.websocketCtrl.send("lighton");
+		this.websocket_status=1;
+	},
+	//菜单点击
+	menuClick(index){
+		 this.actindex=index;
+		 this.dateType=index==0?'date':'month';
+		 this.$nextTick(()=>{this.page_list();});
+	},
+	clickOther(){
+		if(this.is_scan){
+			this.exit_timer_s=30;
+		}
+	},
+	  GetfooterData:function ({ columns, data }) {
+						   this.footerData=[]
+						   let sumObj={}
+						   let arr=[]
+						   for(let i=0;i<this.footerSumName.length;i++){
+							   sumObj[this.footerSumName[i]]=0;
+						   }
+						   columns.forEach((item,index)=>{
+							   if(index==0){arr.push('合计')}
+							   else if(this.footerSumName.indexOf(item.property)>-1 && this.sumList){
+								   arr.push(this.sumList[item.property])
+							   }
+							    else{arr.push("-")}
+						   })
+	             this.footerData.push(arr)
+					         return this.footerData
+					      },
+  }
+};
+</script>
+
+<style scoped>
+ .el-container{
+		background-color: #fff;
+	}
+.el-header,
+.el-footer {
+  color: #333;
+  text-align: center;
+  line-height: 60px;
+}
+
+.el-aside {
+  background-color: #fff;
+  color: #333;
+  text-align: center;
+  line-height: 100px;
+  border-right: 1px solid #e3e3e3;
+}
+.active{
+	color: var(--el-color-primary)!important;
+	background-color: var(--el-color-primary-light-9)!important;
+}
+.el-header .el-col{
+    height: 60px;
+}
+.menu_item{
+    cursor: pointer;
+	height:60px;
+	line-height: 60px;
+}
+::-webkit-scrollbar{ /*滚动条基本样式，高度*/
+width:10px;height:10px;
+}
+::-webkit-scrollbar-thumb {/*滚动条上层颜色*/
+border-radius: 5px;
+-webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+background: rgba(0,0,0,0.2);
+}
+::-webkit-scrollbar-track {/*滚动条底层颜色*/
+-webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+border-radius: 0;
+background: rgba(0,0,0,0.1);
+}
+</style>

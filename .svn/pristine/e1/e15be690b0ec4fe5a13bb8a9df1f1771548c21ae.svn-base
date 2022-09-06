@@ -1,0 +1,154 @@
+<template>
+	<vxe-table
+	    :data="list"
+	    highlight-current-row
+	    highlight-hover-row
+	    height="auto"
+	    border="full"
+	    ref="Summary"
+	    :print-config="{}"
+	    :auto-resize="$store.state.autoResize"
+	  >
+	<vxe-column type="expand" width="40">
+	<template #content="{ row }">
+			  <table class="table">
+				  <thead>
+					  <tr>
+						  <th style="width: 260px;">部件</th>
+						  <th>工序</th>
+						  <th>订单部件数</th>
+						  <th>每套用量</th>
+						  <th>标准时产能</th>
+						  <th>投料数量</th>
+						  <th>今日良品</th>
+						  <th>累计良品</th>
+						  <th>来料不良</th>
+						  <th>制程不良</th>
+						  <th>制程累计不良</th>
+						  <th>欠数</th>
+						  <th>不良详述</th>
+						  <th>其它异常问题</th>
+						  <th>备注</th>
+					  </tr>
+				  </thead>
+			  </table>
+				 
+			<div class="t_body" style="width: 100%;max-height: 500px;height: auto;overflow-y: auto;" >
+				<table class="table">
+				  <tbody>
+					  <template v-for="(item,index) in row.children">
+						 <template v-for="(processName_item,processName_index) in item.children">
+					    <tr>
+						  <td :rowspan="item.children.length" v-show="processName_index ==0" style="text-align: left;width: 260px;" >{{item.invName}}</td>
+						  <td>{{processName_item.processName}}</td>
+						  <td>{{processName_item.componentQty}}</td>
+						  <td>{{processName_item.rate}}</td>
+						  <td>{{processName_item.capacity}}</td>
+						  <td>{{processName_item.materialQty}}</td>
+						  <td>{{processName_item.usageQty}}</td>
+						  <td>{{processName_item.totalUsageQty}}</td>
+						  <td>{{processName_item.badIncome}}</td>
+						  <td>{{processName_item.badProduce}}</td>
+						  <td>{{processName_item.totalBadProduce}}</td>
+						  <td>{{processName_item.oweQty}}</td>
+						  <td>{{processName_item.badRemark}}</td>
+						  <td>{{processName_item.otherRemark}}</td>
+						  <td>{{processName_item.remark}}</td>
+					  </tr>
+					  </template>
+					</template>
+				  </tbody>
+			  </table>
+		  </div>	  
+	</template>
+	</vxe-column>
+	<vxe-column type="seq" width="60" title="序号" align="center"></vxe-column>
+	<vxe-table-column  title="订单号">
+			<template #default="{ row,index }">
+			 <div style="display: flex;">
+				<div style="width: 320px;">
+				   <span style="color: #000000;padding: 0 8px;">销售订单号:</span>
+				   <span>{{row.orderNo}}</span>
+			    </div>
+				<div>
+				    <span style="color: #000000;padding: 0 8px;">销售订单总量:</span>
+				    <span >{{row.quantity}}</span>
+				 </div>
+			 </div>
+			</template>
+	</vxe-table-column>
+	  </vxe-table>
+</template>
+<script>
+import XEUtils from 'xe-utils'
+	export default{
+		components:{},
+		props: {
+			Pdata: {
+				type: String,
+			},
+			search:{
+				type:String,
+				default:'',
+			}
+		},
+		data(){
+			return{
+				lazy: true,
+				totalCount: 0,
+				tableData: [],
+				list:this.tableData,
+				select_id: "",
+				auto: true,
+			}
+		},
+		mounted() {
+			this.page_list()
+		},
+		methods:{
+			searchEvent:function(){
+				this.list=[];
+				if(!this.search){
+					this.list=this.tableData;
+					return;
+				}
+                 this.tableData.filter((item)=>{
+					 if(item.orderNo.indexOf(this.search) > -1){
+						 this.list.push(item)}
+					 })
+			},
+			page_list: function(data) {
+			  let reportDate = data?data:this.Pdata;
+			  this.api.report.ReportDaily.Summary.GetList(reportDate).then(res => {
+			    if(res.data.code==200){
+					this.tableData=res.data.data.listData;
+					this.searchEvent();
+			    }else{
+			    this.$message.error(res.data.message)}
+			    
+			  });
+			},
+		},
+	}
+</script>
+<style scoped>
+	.table{
+		    table-layout: fixed;
+		    border-collapse: collapse;
+			width: 100%;
+		    border: 1px solid #e6e6e6;
+			 min-height: 25px; 
+			 line-height: 25px; 
+			 text-align: center; 
+			 border-collapse: collapse; 
+			 padding:2px;
+			 word-wrap:break-word; 
+			 word-break:break-all;
+	}
+	.table,.table tr th, .table tr td { border:1px solid #e6e6e6; }
+	.table thead th{
+		background: #fafafa;
+		font-size: 14px;
+	}
+
+</style>

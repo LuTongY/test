@@ -1,0 +1,145 @@
+<template>
+   <el-container>
+       <el-header>
+      <vxe-toolbar  >
+          <template #buttons>
+            <vxe-input v-model="search.name" placeholder="工序名称"></vxe-input>
+            <vxe-button status="primary" @click="page_list"  >搜索</vxe-button>
+            <vxe-button v-has="['add']" @click="add">新增</vxe-button>
+            <vxe-button v-has="['edit']" @click="edit">修改</vxe-button>
+            <vxe-button v-has="['del']" @click="del">删除</vxe-button>
+          </template>
+        </vxe-toolbar>
+          </el-header>
+       <el-main>
+        <vxe-table
+          :data="tableData"
+           :highlight-current-row="row"
+          :highlight-hover-row="row"
+          height="auto"
+          border="full"
+          :auto-resize="$store.state.autoResize"
+           @cell-click="selectId"
+           header-align='center'
+          >
+          <vxe-table-column field="rowNum" title="序号"  width="80" align="center"></vxe-table-column>
+          <vxe-table-column field="workshopName" title="车间名称"  width="180" align="center"></vxe-table-column>     
+          <vxe-table-column    field="reportWorkTypeName" title="报工类型" width="130" align="center"></vxe-table-column>
+          <vxe-table-column    field="name" title="工序名称"></vxe-table-column>
+		   <vxe-table-column    field="isAssign" title="是否派工" width="120" align="center"     :formatter="({ cellValue })=>{ return  cellValue==1?'是':'否'}"></vxe-table-column>
+          <vxe-table-column    field="isReportWork" title="是否报工"  align="center" width="120" :formatter="({ cellValue })=>{ return  cellValue==1?'是':'否'}"></vxe-table-column>
+          <vxe-table-column    field="updateUser" title="维护人"></vxe-table-column>
+          <vxe-table-column    field="updateTime" title="维护日期"></vxe-table-column>
+          <vxe-table-column    field="status" title="状态" align="center" width="100"  :formatter="({ cellValue })=>{ return  cellValue==1?'正常':'停用'}" ></vxe-table-column>
+        </vxe-table>
+       </el-main>
+      <el-footer>
+        <page ref="page_data"  :totalCount="totalCount" @page_list='page_list'/>
+      </el-footer>
+      <add   ref='add'   @page_list='page_list'/>
+      <edit  ref='edit'  @page_list='page_list'/>
+
+   </el-container>
+</template>
+
+
+<script>
+import page from '@/components/page/page.vue';
+import add from './add.vue';
+import edit from './edit.vue';
+
+export default {
+  name:'Process',
+  components:{
+    page,
+    add,
+    edit,
+  },
+  data(){
+    return{
+        row:true,
+        search:{},
+        totalCount: 0,
+        tableData: [],
+        select_id:'',
+    }
+   
+  },
+  mounted(){
+      this.page_list();
+  },
+   methods:{
+       page_list: function() {
+         let pagesize=this.$refs.page_data.page_size;
+				 let page=this.$refs.page_data.page;
+				this.api.production.Process.GetList(pagesize, page,this.search).then((res) => {
+                    if(res.data.code==200){
+	                   this.tableData = res.data.data.rows
+					   this.totalCount = parseInt(res.data.data.totalCount)
+                    }else{
+                        this.$message.error(res.data.message)
+                    }
+				
+				})
+      },
+      selectId:function(item){
+				this.select_id=item.row.id
+			},
+      add:function(){
+        this.$refs.add.is_show=!this.$refs.add.is_show
+        this.$refs.add.roleForm={}
+        this.api.production.Process.EditInfo().then((res)=>{
+          if(res.data.code==200){
+            this.$refs.add.options=res.data.data
+          }else{
+            this.$message.error(res.data.message)
+          }
+        })
+      },
+      edit:function(){
+        if(!this.select_id){this.$message.error("请先选择工序"); return false}
+        this.$refs.edit.is_show=!this.$refs.edit.is_show;
+        this.$refs.edit.select_id=this.select_id;
+        this.api.production.Process.EditInfo(this.select_id).then((res)=>{
+          if(res.data.code==200){
+              this.$refs.edit.options=res.data.data
+              this.$refs.edit.roleForm=res.data.data.row;
+              this.$refs.edit.roleForm.workshopId=String(res.data.data.row.workshopId)
+              this.$refs.edit.roleForm.reportWorkType=String(res.data.data.row.reportWorkType)
+              this.$refs.edit.roleForm.type=String(res.data.data.row.type)
+			  this.$refs.edit.roleForm.craftId=String(res.data.data.row.craftId)
+               console.log(this.$refs.edit.roleForm)   
+          }
+        })
+      },
+      	del: function() {
+				if(!this.select_id){this.$message.error("请先选择工序"); return false}
+				this.$confirm('此操作将删除该工序, 是否继续?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'warning'
+				}).then(() => {   
+					this.api.production.Process.del(this.select_id).then((res) => {
+						this.page_list()
+						this.$message.success('删除成功')
+					}).catch(() => {
+						this.$message({
+							type: 'info',
+							message: '已取消删除'
+						});
+					});
+			
+				})
+      },
+   },
+}
+
+</script>
+<style lang="less" scoped="scoped">
+.el-main{
+    padding: 0 20px 20px 20px;
+}
+.vxe-input{
+  margin-right: 18px;
+}
+</style>

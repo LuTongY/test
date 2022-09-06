@@ -1,0 +1,169 @@
+<template>
+	<vxe-table
+	    :data="list"
+	    highlight-current-row
+	    highlight-hover-row
+	    height="auto"
+	    border="full"
+	    ref="Detailed"
+	    :print-config="{}"
+	    :auto-resize="$store.state.autoResize"
+	  >
+	<vxe-column type="expand" width="40">
+	  <template #content="{ row }">
+		  <table class="table" style="width: calc(100% - 17px);">
+			  <thead>
+				  <tr>
+					  <th>部件</th>
+					  <th>工序</th>
+					  <th>时间段</th>
+					  <th>订单部件数</th>
+					  <th>每套用量</th>
+					  <th>标准产能</th>
+					  <th>投料数量</th>
+					  <th>今日良品</th>
+					  <th>累计良品</th>
+					  <th>来料不良</th>
+					  <th>制程不良</th>
+					  <th>制程累计不良</th>
+					  <th>欠数</th>
+					  <th>不良详述</th>
+					  <th>其它异常问题</th>
+					  <th>备注</th>
+				  </tr>
+			  </thead>
+		 </table>
+		<div class="t_body" style="width: 100%;max-height: 500px;height: auto;overflow-y: auto;" >
+		  <table class="table">
+			  <tbody>
+				  <template v-for="(item,index) in row.children">
+				  <tr v-for="(processName_item,processName_index) in item.children">
+					  <td :rowspan="item.children.length" v-show="processName_index ==0" style="text-align: left;">{{item.invName}}</td>
+					  <td>{{processName_item.processName}}</td>
+					  <td colspan="14" >
+						  <table class='chidren_table' style="width: 100%;height: 100%;table-layout: fixed;border-collapse: collapse;word-wrap:break-word;word-break:break-all;">
+							  <tbody>
+								  <tr v-for="(period_item,period_index) in processName_item.children">
+									  <td>{{period_item.periodName}}</td>
+									  <td>{{period_item.componentQty}}</td>
+									  <td>{{period_item.rate}}</td>
+									  <td>{{period_item.capacity}}</td>
+									  <td>{{period_item.materialQty}}</td>
+									  <td>{{period_item.usageQty}}</td>
+									  <td>{{period_item.totalUsageQty}}</td>
+									  <td>{{period_item.badIncome}}</td>
+									  <td>{{period_item.badProduce}}</td>
+									  <td>{{period_item.totalBadProduce}}</td>
+									  <td>{{period_item.oweQty}}</td>
+									  <td>{{period_item.badRemark}}</td>
+									  <td>{{period_item.otherRemark}}</td>
+									  <td>{{period_item.remark}}</td>
+								  </tr>
+							  </tbody>
+						  </table>
+					  </td>
+				  </tr>
+				</template>
+			  </tbody>
+		  </table>
+		</div>
+	  </template>
+	</vxe-column>
+	<vxe-column type="seq" width="60" title="序号" align="center"></vxe-column>
+	<vxe-table-column  title="订单号">
+			<template #default="{ row,index }">
+			 <div style="display: flex;">
+				<div style="width: 320px;">
+				   <span style="color: #000000;padding: 0 8px;">销售订单号:</span>
+				   <span>{{row.orderNo}}</span>
+			    </div>
+				<div>
+				    <span style="color: #000000;padding: 0 8px;">销售订单总量:</span>
+				    <span >{{row.quantity}}</span>
+				 </div>
+			 </div>
+			</template>
+	</vxe-table-column>
+ </vxe-table>
+</template>
+<script>
+	export default{
+		name:'Detailed',
+		components:{},
+		props: {
+			Pdata: {
+				type: String,
+			},
+			search:{
+				type:String,
+				default:'',
+			}
+		},
+		data(){
+			return{
+				lazy: true,
+				tableData: [],
+				list:[],
+				auto: true,
+			}
+		},
+		mounted() {
+		  this.page_list();
+		},
+		methods:{
+			searchEvent:function(){
+				this.list=[];
+				if(!this.search){
+					this.list=this.tableData;
+					return;
+				}
+			     this.tableData.filter((item)=>{
+					 if(item.orderNo.indexOf(this.search) > -1){
+						 this.list.push(item)}
+					 })
+			},
+			page_list: function(data) {
+			  let reportDate = data?data:this.Pdata;
+			  this.api.report.ReportDaily.Detailed.GetList(reportDate).then(res => {
+			    if(res.data.code==200){
+					this.tableData=res.data.data.listData;	
+					   this.searchEvent();
+			    }else{
+			    this.$message.error(res.data.message)}
+			    
+			  });
+			},
+		},
+	}
+</script>
+<style scoped>
+	.table{
+		    table-layout: fixed;
+			width: 100%;
+		    border: 1px solid #e6e6e6;
+			 min-height: 25px; 
+			 line-height: 25px; 
+			 text-align: center; 
+			 border-collapse: collapse; 
+			 padding:2px;
+			 word-wrap:break-word; 
+			 word-break:break-all;
+	}
+	.table,.table tr th, .table tr td { border:1px solid #e6e6e6; }
+	.table thead th{
+		background: #fafafa;
+		font-size: 14px;
+	}
+	.chidren_table tr:last-child td{
+		border-bottom:none ;
+	}
+	.chidren_table tr:first-child td{
+		border-top:none ;
+	}
+	.chidren_table tr td:first-child{
+		border-left:none ;
+	}
+	.chidren_table tr td:last-child{
+		border-left:none ;
+	}
+</style>

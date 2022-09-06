@@ -1,0 +1,105 @@
+<template>
+  <el-container>
+    <el-header>
+      <vxe-toolbar ref="PackMaterialCardToolbar" custom print>
+        <template #buttons>
+          <vxe-input v-model.trim="search.cCode" placeholder="采购到货单"></vxe-input>
+          <vxe-button status="primary" @click="page_list">搜索</vxe-button>
+          <vxe-button v-has="['print']" @click="print">打印物料卡</vxe-button>
+        </template>
+      </vxe-toolbar>
+    </el-header>
+    <el-main>
+      <vxe-table
+        :data="tableData"
+        highlight-current-row
+        highlight-hover-row
+        height="auto"
+        border="full"
+		show-overflow
+        ref="PackMaterialCard"
+        :print-config="{}"
+        :auto-resize="$store.state.autoResize"
+         :radio-config="{checkField: 'checked', trigger: 'row',range: true,highlight: true,}"
+      >
+       <vxe-column type="radio" width="60" align="center"></vxe-column>
+        <vxe-table-column field="id" title="id"  width="120px"></vxe-table-column>
+        <vxe-table-column field="cCode" title="采购到货单"   width="120px"></vxe-table-column>
+        <vxe-table-column field="dDate" title="单据日期"  width="120px" :formatter="T.formatDate"></vxe-table-column>
+		<vxe-table-column field="cVenAbbName" title="供应商名称"  width="190px"></vxe-table-column>
+		<vxe-table-column field="cWhName" title="仓库名称"  width="120px"></vxe-table-column>
+		<vxe-table-column field="cInvCode" title="存货编码"  width="130px"></vxe-table-column>
+		<vxe-table-column field="cInvName" title="存货名称"  ></vxe-table-column>
+		<vxe-table-column field="iQuantity" title="数量"  width="90px" :formatter="T.formatFixedNumber"></vxe-table-column>
+		<vxe-table-column field="Flag" title="状态"  width="90px"></vxe-table-column>
+		<vxe-table-column field="cSoCode" title="需求跟踪号"  width="120px"></vxe-table-column>
+		<vxe-table-column field="SoSeq" title="行号"  width="60px" align="center"></vxe-table-column>
+		<vxe-table-column field="cMaker" title="制单人"  width="85px"></vxe-table-column>
+		<vxe-table-column field="cverifier" title="审核人"  width="85px"></vxe-table-column>
+		<vxe-table-column field="bInvBatch" title="批号"  width="60px"></vxe-table-column>
+      </vxe-table>
+    </el-main>
+    <el-footer>
+      <page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+    </el-footer>
+  </el-container>
+ 
+</template>
+<script>
+import page from "@/components/page/page.vue";
+export default {
+  name: "PackMaterialCard",
+  components: {
+    page,
+  },
+  data() {
+    return {
+      search: {},
+      totalCount: 0,
+      tableData: [],
+      select_id: "",
+      auto: true
+    };
+  },
+created () {
+           this.$nextTick(() => {this.$refs.PackMaterialCard.connect(this.$refs.PackMaterialCardToolbar)})
+            },
+  mounted() {
+    this.page_list();
+  },
+  methods: {
+    page_list: function() {
+      let pagesize = this.$refs.page_data.page_size;
+      let page = this.$refs.page_data.page;
+      this.api.warehouse.PackMaterialCard.GetList(
+        pagesize,
+        page,
+        this.search
+      ).then(res => {
+        if(res.data.code==200){
+        this.tableData = res.data.data.rows;
+        this.totalCount = parseInt(res.data.data.totalCount);
+        }else{
+        this.$message.error(res.data.message)}
+        
+      });
+    },
+    print:function(){
+     if (!this.$refs.PackMaterialCard.getRadioRecord()) {this.$message.error("请先选择订单");return false}
+     this.api.production.Craft.EditInfo(data[0].id).then((res)=>{
+         if(res.data.code==200){
+             this.$refs.edit.is_show=!this.$refs.edit.is_show;
+             this.$refs.edit.addForm=res.data.data.row;
+         }else{
+
+         }
+         })
+    },
+  }
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+  padding: 0 20px 20px 20px;
+}
+</style>

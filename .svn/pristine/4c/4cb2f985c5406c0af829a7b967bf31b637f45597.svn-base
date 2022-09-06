@@ -1,0 +1,248 @@
+<template>
+	<el-container>
+		<el-header>
+			<vxe-toolbar ref="CapacityProcessToolbar" custom print export>
+				<template #buttons>
+					<vxe-input v-model.trim="search.invName"   placeholder="物料名称"></vxe-input>
+					<vxe-input v-model.trim="search.invCode" placeholder="物料编码"></vxe-input>
+					<vxe-button status="primary" @click="page_list">搜索</vxe-button>			
+					<vxe-button v-has="['add']" @click="add">新增</vxe-button>
+					<vxe-button v-has="['del']" @click="del">删除</vxe-button>
+				</template>
+			</vxe-toolbar>
+		</el-header>
+		<el-main>
+			<vxe-table :data="tableData" 
+			     highlight-current-row 
+				 highlight-hover-row 
+				 height='auto'
+				 border='full'
+				 ref="CapacityProcess"
+				 :print-config="{}"
+				 resizable
+				 show-overflow
+				:expand-config="{lazy: true, loadMethod: loadContentMethod}"
+				:auto-resize="$store.state.autoResize"
+				 :radio-config="{labelField: 'name', trigger: 'row'}"
+				:tree-config="{accordion: lazy,children: 'childData'}"
+				 :edit-config="{trigger: 'click', mode: 'row'}"
+				 @edit-closed="editClosedEvent"
+				 :checkbox-config="{checkField: 'checked', trigger: 'cell',range: false,highlight: true}"
+				>
+			<vxe-column type="expand" width="40">
+			  <template #content="{ row }">
+			    <el-container>
+					<el-main>
+			    <vxe-grid :columns="row.childCols" :data="row.childData" :auto-resize="$store.state.autoResize"  highlight-current-row highlight-hover-row>
+					 <template v-slot:ispitch="{ row }">
+						 <el-button type="danger" round v-if="row.ispitch==0" size="mini">设为标准产能</el-button>
+					     <el-button type="success" round v-else size="mini">标准产能</el-button>
+					  </template>
+				</vxe-grid>
+				</el-main>
+			   <el-footer>
+			   	<page ref="children_page_data" :totalCount="children_ch_totalCount" @page_list="loadContentMethod(row)" />
+			   </el-footer>
+			   </el-container>
+			  </template>
+			</vxe-column>
+				<vxe-column type="checkbox" width="60" align="center"></vxe-column>
+				<vxe-table-column field="invCode" title="子件编码" width="120px"></vxe-table-column>
+				<vxe-table-column field="invName" title="子件名称" width="420px"></vxe-table-column>
+				<vxe-table-column field="processName" title="工序名称" width="150px"></vxe-table-column>
+				<vxe-table-column field="capacityMinute10" title="10分钟产能(标准)" width="160px" :edit-render="{name: 'input', attrs: {type: 'number'}}" ></vxe-table-column>
+				<vxe-table-column field="capacityHour"  title="一小时产能(标准)" align="center"  :edit-render="{name: 'input', attrs: {type: 'number'}}"  width="150px"></vxe-table-column>
+				<vxe-table-column field="capacityHour105"  title="10.5产能(标准)" align="center"  :edit-render="{name: 'input', attrs: {type: 'number'}}"  width="150px"></vxe-table-column>
+				<vxe-table-column field="updateUser" title="更新人" width="90px"></vxe-table-column>
+				<vxe-table-column field="updateTime" title="更新时间" min-width="150px"></vxe-table-column>
+				<vxe-table-column field="createUser" title="创建人"  width="90px"></vxe-table-column>
+				<vxe-table-column field="createTime" title="创建时间" min-width="150px"></vxe-table-column>
+				<!-- <vxe-table-column field="1H"  title="一小时产能" align="center" fixed="right" width="150px">
+					<template #default="{ row }">
+						<el-button type="success"  size='mini'  v-if="row.status=='已生成'">{{row.status}}</el-button>
+						<el-button type="warning"  size='mini'  v-else>{{row.status}}</el-button>
+					</template>
+				</vxe-table-column> -->
+			</vxe-table>
+		</el-main>
+		<el-footer>
+			<page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+		</el-footer>
+		<add ref='add' @page_list="page_list" />
+	</el-container>
+
+</template>
+<script>
+	import page from "@/components/page/page.vue";
+	// import print from "./print.vue";
+	import add from "./add.vue";
+	// import edit from "./edit.vue";
+	export default {
+		name: "CapacityProcess",
+		components: {
+			page,
+			// print,
+			add,
+			// edit,
+		},
+		data() {
+			return {
+				search: {},
+				totalCount: 0,
+				children_ch_totalCount:2,
+				tableData: [{
+					'id':'001',
+					'cinvcode':'30404017022',
+					'cinvname':'成品焊接方管框(610*271mm)(冲孔)(喷塑白亮光F2EA-3308A)',
+					'gxmc':'焊接',
+					'10min':'10',
+					'1H':'60',
+					'weld_qty':'4',
+					'children':[{
+						'user':'A员工',
+						'work':'0001',
+						'data':'2022-03-01',
+						'noteTaker':'陈进孝',
+						'10min':'15',
+						'ispitch':0,
+						'1h':'70'},
+						{
+							'user':'B员工',
+							'work':'0002',
+							'data':'2022-03-02',
+							'noteTaker':'李志坚',
+							'10min':'16',
+							'ispitch':1,
+							'1h':'80'},
+						]
+				}
+					
+				],
+				select_id: "",
+				auto: true,
+				lazy:true,
+			};
+		},
+		mounted() {
+			this.page_list();
+		},
+		created () {
+		            this.$nextTick(() => {
+		              // 手动将表格和工具栏进行关联
+		              this.$refs.CapacityProcess.connect(this.$refs.CapacityProcessToolbar)
+		            })
+		          },
+		methods: {
+			page_list: function() {
+				let pagesize = this.$refs.page_data.page_size;
+				let page = this.$refs.page_data.page;
+				this.api.production.CapacityProcess.GetList(pagesize,page,this.search).then(res => {
+					if(res.data.code==200){
+						this.tableData = res.data.data.rows;
+						this.totalCount = parseInt(res.data.data.totalCount);
+					}	
+				});
+			},
+			add: function() {
+				this.$refs.add.is_show = !this.$refs.add.is_show;
+				this.$nextTick(()=>{
+					// console.log(this.$refs.add)
+					this.$refs.add.page_list();
+					this.$refs.add.getWorkshopWithProcessChilds();
+				})
+				
+			},
+			del: function() {
+				let data = this.$refs.CapacityProcess.getCheckboxRecords();
+				if (data.length < 1) {
+					this.$message.error("请先选择物料");
+					return false
+				}
+				let ids = [];
+				data.forEach((i, v) => {
+					ids.push(i.id)
+				});
+				this.$confirm("此操作将删除该物料的标准产能, 是否继续?", "提示", {
+					confirmButtonText: "确定",
+					cancelButtonText: "取消",
+					type: "warning"
+				}).then(() => {
+					this.api.production.CapacityProcess.Delete(ids).then(res => {
+						this.page_list();
+						this.$message.success("删除成功");
+					});
+				});
+			},
+			editClosedEvent(data){
+				console.log(data.row);
+				this.api.production.CapacityProcess.edit(data.row).then((res)=>{
+					if(res.data.code==200){
+						this.page_list();
+						this.$message.success(res.data.message);
+					}
+				})
+				
+				// this.$message.success(row)
+			},
+			loadContentMethod({ row }) {
+				let _this=this
+				console.log(row)
+			  return new Promise(function(resolve, reject) {
+			    setTimeout(function() {
+			      _this.api.production.CapacityProcess.GetCapacityList({'invCode':row.invCode,'processId':row.processId}).then(res => {
+			        if (res.data.code == 200) {
+			          row.childCols = [
+						{ field: "staffNo", title: "员工工号", width: "130px"},
+			            { field: "staffName", title: "员工姓名", width: "80px",align:"center" },
+						{ field: "10min", title: "10分钟产量" ,width: "150px"},
+						{ field: "1h", title: "一小时产量" ,width: "150px"},
+						{ field: "capacityHour105", title: "10.5小时产量" ,width: "150px"},
+						{ field: "createTime", title: "记录日期", width: "200px"},
+						{ field: "manager", title: "记录人" ,width: "150px"},
+						{field: "ispitch",title: "设置", width: "130px",align: "center",slots: { default: "ispitch" }},
+			          ];
+			          row.childData = res.data.data;
+			        }
+			        
+			      });
+				 //  row.childCols=[
+			  //            { field: "user", title: "员工姓名", width: "80px",align:"center" },
+			  //            { field: "work", title: "员工工号", width: "130px"},
+			  //            { field: "data", title: "记录日期", width: "150px"},
+					// 	 { field: "10min", title: "10分钟产量" ,width: "150px"},
+					// 	 { field: "1h", title: "一小时产量" ,width: "150px"},
+					// 	 { field: "noteTaker", title: "记录人" ,width: "150px"},
+					// 	 {field: "ispitch",title: "设置", width: "130px",align: "center",slots: { default: "ispitch" }},
+			  //          ];
+				 // row.childData=[{
+					// 	'user':'A员工',
+					// 	'work':'0001',
+					// 	'data':'2022-03-01',
+					// 	'noteTaker':'陈进孝',
+					// 	'10min':'15',
+					// 	'ispitch':0,
+					// 	'1h':'70'},
+					// 	{
+					// 		'user':'B员工',
+					// 		'work':'0002',
+					// 		'data':'2022-03-02',
+					// 		'noteTaker':'李志坚',
+					// 		'10min':'16',
+					// 		'ispitch':1,
+					// 		'1h':'80'},
+					// 	]
+				  resolve();
+			    });
+			  });
+			}
+		}
+	};
+</script>
+<style lang="less" scoped="scoped">
+	.el-main {
+		padding: 0 20px 20px 20px;
+	}
+	.vxe-input{
+		margin-right: 8px;
+	}
+</style>

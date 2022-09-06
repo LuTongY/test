@@ -1,0 +1,204 @@
+<template>
+	<el-container class="statisticsMain">
+		<el-main>
+			<el-row :gutter="20" style="height:350px" class="PV">
+				<el-col :span="16">
+					<div class="gutter">
+					   <packaging :data='PackPlanData'/>
+					</div>		
+				</el-col>
+				<el-col :span="8">
+					<div class="gutter">
+					   <ProductStorage />
+					</div>		
+				</el-col>
+			</el-row>
+			<el-row :gutter="20" style="height:350px">
+				<el-col :span="6">
+					<div class="gutter">
+						<pie text="制管车间[报工]" :list="data" autoShow />
+					</div>		
+				</el-col>
+				<el-col :span="6">
+					<div class="gutter">
+					    <pie text="五金车间[报工]" :list="data1" autoShow />
+					</div>		
+				</el-col>
+				<el-col :span="6">
+					<div class="gutter">
+					   <pie text="焊接电泳车间[报工]" :list="data2" autoShow />
+					</div>		
+				</el-col>
+				<el-col :span="6">
+					<div class="gutter">
+					  <pie text="木板车间[报工]" :list="data3" autoShow />
+					</div>		
+				</el-col>
+			</el-row>
+		</el-main>
+	</el-container>
+
+</template>
+<script>
+	import Charts from '@/views/index/Charts';
+	import ProductStorage from './ProductStorage';
+	import packaging from './packaging';
+	import pie from '@/components/Echarts/pie/pie.vue';
+	import timeLine from '@/views/index/timeLine';
+	export default {
+		components: {
+			Charts,
+			timeLine,
+			ProductStorage,
+			packaging,
+			pie,
+			
+		},
+		data() {
+			return {
+				PackPlanData:[],
+				ProductStorage:{},
+				data: [{
+						value: 1048,
+						name: '上料'
+					},
+					{
+						value: 735,
+						name: '制管看机台'
+					},
+					{
+						value: 580,
+						name: '电裁'
+					},
+					{
+						value: 484,
+						name: '自动裁'
+					},
+					{
+						value: 300,
+						name: '改管'
+					}
+				],
+				data1: [{
+						value: 1048,
+						name: '两边打孔'
+					},
+					{
+						value: 1735,
+						name: '刷毛刺'
+					},
+					{
+						value: 1200,
+						name: '冲孔1'
+					},
+					{
+						value: 8000,
+						name: '冲孔2'
+					},
+					{
+						value: 6000,
+						name: '冲孔3'
+					},
+					{
+						value: 6000,
+						name: '塞螺母'
+					},
+					{
+						value: 6000,
+						name: '切角'
+					}
+				],
+				data2: [{
+						value: 1048,
+						name: '焊接'
+					},
+					{
+						value: 735,
+						name: '打磨'
+					},
+					{
+						value: 580,
+						name: '插管'
+					},
+					{
+						value: 484,
+						name: '收管'
+					},
+				],
+				data3: [{
+						value: 1048,
+						name: '开料'
+					},
+					{
+						value: 7350,
+						name: '封边+排孔'
+					},
+					{
+						value: 5800,
+						name: '检验+码垛'
+					},
+					{
+						value: 96120,
+						name: '贴号'
+					},
+				],
+				
+				
+			}
+		},
+		mounted() {
+			this.getPackPlan()  //获取当日包装计划
+		},
+		methods: {
+			getPackPlan() {
+				this.api.index.PackPlan.GetList().then((res)=>{
+					if(res.data.code==200){
+						this.PackPlanData=res.data.data.rows
+						this.PackPlanData.forEach((item,index)=>{
+							item.percentage=this.T.intRow(this.T.floatRow(item.PlanQualifiedInQty)/this.T.intRow(item.PlanQty)*100)
+						})
+					}
+					
+				})
+			},
+		
+		},
+		beforeDestroy() {
+			console.log('离开了页面')
+		   
+		}
+	}
+</script>
+<style lang="less" scoped="scoped">
+	.statisticsMain {
+		background: #F5F7F8;
+	}
+
+	.el-row {
+		overflow: hidden;
+		margin-bottom: 25px;
+		background: #F5F7F8;
+	}
+
+	.el-col {
+		
+		overflow: hidden;
+		// border: 1px solid rgb(228, 231, 237);
+		border-radius: 6px;
+		.gutter{
+			height: calc(100% - 2px);
+			max-height: 350px;
+			border: 1px solid rgb(228, 231, 237);
+		}
+	}
+   
+	// .statisticsMain /deep/.grid-content{
+	// 	height: 250px;
+	// 	max-height: 250px;
+	// 	background: #fff;
+	// 	border: 1px solid #ebeef5;
+	// }
+	// .PV {
+	// 	background: #fff;
+	// }
+</style>

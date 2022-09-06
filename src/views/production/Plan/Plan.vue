@@ -1,0 +1,169 @@
+<template>
+	<el-container>
+		<el-header>
+			<vxe-toolbar ref="PlanToolbar" custom print export>
+				<template #buttons>
+					<vxe-button status="primary" @click="searchDate">查询</vxe-button>
+					<vxe-button v-has="['add']" @click="add">新增</vxe-button>
+					<vxe-button v-has="['excel']" @click="excel">excel导入</vxe-button>
+					<vxe-button @click="downTable">导出</vxe-button>
+				</template>
+			</vxe-toolbar>
+		</el-header>
+		<el-main>
+			<vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" keep-source
+				border="full" :print-config="{}" show-overflow
+				:edit-config="{ trigger: 'click', mode: 'cell', showStatus: true, icon: 'fa fa-pencil' }" ref="plan"
+				:auto-resize="$store.state.autoResize" @cell-click="selectId" resizable show-footer
+				:footer-method="GetfooterData"
+				:checkbox-config="{ checkField: 'checked', trigger: 'cell', range: true, highlight: true }">
+				<vxe-column type="checkbox" width="60" align="center"></vxe-column>
+				<vxe-column field="saleOrderNo" title="销售订单号" width="120px"></vxe-column>
+				<vxe-column field="saleOrderSeq" title="行号" width="50px" align="center"></vxe-column>
+				<vxe-column field="series" title="系列" width="100px" align="center"></vxe-column>
+				<vxe-column field="invCode" title="物料编码" width="130px" :visible='false'></vxe-column>
+				<vxe-column field="invName" title="物料名称" min-width="250px"></vxe-column>
+				<vxe-column field="quantity" title="需求数量" width="100px"></vxe-column>
+				<vxe-column field="scheduleQty" title="待排产数量" width="100px"></vxe-column>
+				<vxe-column field="qualifiedQty" title="入库数量" width="100px"></vxe-column>
+				<!-- 		<vxe-column field="plan_qty" title="计划数量" width="120px"></vxe-column> -->
+				<vxe-column field="packDate" title="预计包装日期" width="130px"></vxe-column>
+				<vxe-column field="dueDate" title="订单交期" width="130px"></vxe-column>
+				<vxe-column field="salesman" title="业务员" width="100px"></vxe-column>
+				<vxe-column field="isStock" title="现货" width="60px"></vxe-column>
+				<vxe-column field="createUser" title="创建人" width="80px" :visible='false'></vxe-column>
+				<vxe-column field="createTime" title="创建时间" width="120px" :visible='false'></vxe-column>
+				<vxe-column field="scheduleStatusName" title="排产情况" align="center" fixed="right" width="120px">
+					<template #default="{ row }">
+						<el-button size='mini'
+							:type="row.scheduleStatus == 2 ? 'danger' : (row.scheduleStatus == 3 ? 'success' : '')">{{
+									row.scheduleStatusName
+							}}</el-button>
+					</template>
+				</vxe-column>
+				<vxe-column field="statusName" title="状态" align="center" fixed="right" width="120px">
+					<template #default="{ row }">
+						<el-button size='mini'
+							:type="row.status == 2 ? 'primary' : (row.status == 3 ? 'success' : (row.status == 4 ? 'info' : ''))">{{
+									row.statusName
+							}}</el-button>
+					</template>
+				</vxe-column>
+			</vxe-table>
+		</el-main>
+		<el-footer>
+			<page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+		</el-footer>
+		<add ref='add' @page_list="page_list" />
+		<excel ref='excel' @page_list="page_list" />
+		<search ref='search' @SonSearch="SonSearch" />
+		<down-table ref='downTable' />
+	</el-container>
+
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import add from "./add.vue";
+import excel from "./excel.vue";
+import search from "./search.vue";
+import downTable from "./downTable.vue";
+export default {
+	name: "Plan",
+	components: {
+		page,
+		add,
+		excel,
+		downTable,
+		search,
+	},
+	data() {
+		return {
+			search: {},
+			totalCount: 0,
+			tableData: [],
+			select_id: "",
+			auto: true,
+			footerData: [],
+			footerSumName: ['quantity', 'qualifiedQty'], //需要合计的列
+		};
+	},
+	mounted() {
+		this.page_list();
+	},
+	created() {
+		this.$nextTick(() => {
+			// 手动将表格和工具栏进行关联
+			this.$refs.plan.connect(this.$refs.PlanToolbar)
+		})
+	},
+	methods: {
+		searchDate: function () {
+			this.$refs.search.SelectShow = true;
+		},
+		GetfooterData: function ({ columns, data }) {
+			this.footerData = []
+			let sumObj = {}
+			let arr = []
+			for (let i = 0; i < this.footerSumName.length; i++) {
+				sumObj[this.footerSumName[i]] = 0;
+			}
+			data.forEach((item, index) => {
+				for (let obj in sumObj) {
+					if (!isNaN(item[obj]) && item.hasOwnProperty(obj)) {
+						sumObj[obj] += parseInt(item[obj])
+					}
+				}
+			})
+			columns.forEach((item, index) => {
+				if (index == 0) { arr.push('合计') }
+				else if (this.footerSumName.indexOf(item.property) > -1) {
+					arr.push(sumObj[item.property])
+				}
+				else { arr.push("-") }
+			})
+			this.footerData.push(arr)
+			return this.footerData
+		},
+		SonSearch: function () {
+			this.search = this.$refs.search.form;
+			this.page_list()
+		},
+		page_list: function () {
+			let pagesize = this.$refs.page_data.page_size;
+			let page = this.$refs.page_data.page;
+			this.api.production.plan.GetList(pagesize, page, this.search).then(res => {
+				if (res.data.code == 200) {
+					this.tableData = res.data.data.rows;
+					this.totalCount = parseInt(res.data.data.totalCount);
+					this.$refs.search.SelectShow = false
+				} else {
+					this.$message.error(res.data.message)
+				}
+
+			});
+		},
+		selectId: function (item) {
+			this.select_id = item.row.id;
+		},
+		add: function () {
+			this.$refs.add.is_show = !this.$refs.add.is_show;
+			this.$nextTick(() => {
+				this.$refs.add.children_page_list();
+			})
+
+		},
+		excel: function () {
+			this.$refs.excel.is_show = !this.$refs.excel.is_show;
+		},
+		downTable: function () {
+			this.$refs.downTable.excel_Show = true;
+			this.$refs.downTable.form = {}
+		},
+	},
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+	padding: 0 20px 20px 20px;
+}
+</style>

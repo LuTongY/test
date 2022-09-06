@@ -1,0 +1,124 @@
+<template>
+	<div v-dialogdrag class="warpper">
+		<bar text="今日成品入库" :list="ProductStorage" autoShow @itemClick='itemClick' />
+		<el-dialog title="生产计划" v-model="is_show" width="1200px" @open="open">
+			<el-container>
+				<el-header>
+					<vxe-toolbar ref="ProductStorageToolbar" custom print export></vxe-toolbar>
+				</el-header>
+				<el-main>
+					<el-row style="height: 500px;">
+						<el-col>
+							<vxe-table 
+			  				     :data="itemData" 
+			  				     highlight-current-row 
+			  			         highlight-hover-row 
+			  				     height="auto" 
+			  				     border="full" 
+			  				     ref="ProductStorage"
+								:print-config="{}"
+			  					:auto-resize="$store.state.autoResize" 
+			  					 show-overflow="title">
+			  					<vxe-column field="cInvCName" title="系列" width="120px"></vxe-column>
+			  					<vxe-column field="csocode" title="销售订单">
+								 <template #default='{ row }'>
+									 <span>{{row.csocode+'-'+row.iorderseq}}</span>
+								 </template>
+								</vxe-column>
+			  					<vxe-column field="cInvCode" title="成品编码"></vxe-column>
+			  					<vxe-column field="cinvName" title="成品名称"></vxe-column>
+			  					<vxe-column field="iQuantity" title="入库数量" :formatter="({ cellValue })=>{ return  T.floatRow(cellValue)}" width="80px"></vxe-column>
+			  					<vxe-column field="dDate" title="入库日期"  :formatter="({ cellValue })=>{ return   moment(cellValue).format('YYYY-MM-DD')}" width="120px"></vxe-column>
+			  					<vxe-column field="cWhCode" title="仓库编码" width="80px"></vxe-column>
+			  					<vxe-column field="cWhName" title="仓库名称"></vxe-column>
+			  					<vxe-column field="cMaker" title="提交人" width="80px"></vxe-column>
+			  					<vxe-column field="cHandler" title="审核人" width="80px"></vxe-column>
+			  				</vxe-table>
+						</el-col>
+					</el-row>
+
+				</el-main>
+			</el-container>
+		</el-dialog>
+	</div>
+</template>
+<script>
+	import bar from '@/components/Echarts/bar/bar.vue';
+	import Dialog from '@/components/Dialog/Dialog.vue';
+	import page from "@/components/page/page.vue";
+	export default {
+		name: "ProductStorage",
+		components: {
+			bar,
+			Dialog,
+			page,
+		},
+		data() {
+			return {
+				ProductStorage: [],
+				itemData: [],
+				totalCount: 0,
+				is_show: false,
+			}
+		},
+		created() {
+			this.$nextTick(() => {
+		 	// 手动将表格和工具栏进行关联
+				console.log(this.$refs)
+		 	// this.$refs.ProductStorage.connect(this.$refs.ProductStorageToolbar)
+			})
+		},
+		mounted() {
+			this.getProductStorage();
+		},
+		methods: {
+			open() {
+				this.$nextTick(() => {
+					// 手动将表格和工具栏进行关联
+					console.log(this)
+					this.$refs.ProductStorage.connect(this.$refs.ProductStorageToolbar)
+				})
+			},
+			getProductStorage() {
+				let search = {
+					dDate: [this.moment().format('YYYY-MM-DD'), this.moment().format('YYYY-MM-DD')]
+				}
+				this.api.index.ProductStorage.GetList(search).then((res) => {
+					if (res.data.code == 200) {
+						this.ProductStorage = this.T.formatStatisticalBar('cinvcname', 'iQuantity', res.data.data
+							.rows);
+					}
+				})
+			},
+			itemClick(params) {
+				this.getProductStorageItem(params)
+				this.is_show = true;
+				// this.$refs.Dialog.isShow=true;
+			},
+			getProductStorageItem(data) {
+				let search = {
+					dDate: [this.moment().format('YYYY-MM-DD'), this.moment().format('YYYY-MM-DD')],
+					xl: data.name
+				}
+				this.api.index.ProductStorage.GetListItem(search).then((res) => {
+					if (res.data.code == 200) {
+						this.itemData = res.data.data.rows;
+					}
+				})
+			},
+		},
+	}
+</script>
+<style scoped lang="less">
+	.warpper {
+		width: 100%;
+		height: 100%;
+	}
+	.el-main,
+	/deep/.el-dialog__body{
+		padding-top: 0;
+	}
+	/deep/.el-dialog__header{
+		padding-bottom: 0;
+	}
+</style>

@@ -1,0 +1,245 @@
+<template>
+	<el-container>
+		<el-header>
+			<vxe-toolbar ref="PackPlanToolbar" custom print export>
+				<template #buttons>
+					<vxe-input v-model.trim="search.orderNo" placeholder="销售订单号"></vxe-input>
+					<vxe-button status="primary" @click="page_list">搜索</vxe-button>
+					<vxe-button @click="add" v-has="['CreateTask']">生成包装任务</vxe-button>
+					<!-- 
+					<vxe-button v-has="['edit']" @click="edit">修改</vxe-button>
+          			<vxe-button v-has="['del']" @click="del">删除</vxe-button> 
+					-->
+				</template>
+			</vxe-toolbar>
+		</el-header>
+		<el-main>
+			<vxe-table :data="tableData" highlight-current-row highlight-hover-row height="auto" keep-source
+				border="full" ref="PackPlan" @edit-closed="editClosedEvent"
+				:edit-config="{ trigger: 'click', mode: 'cell', showStatus: true, icon: 'fa fa-pencil' }"
+				:print-config="{}" @cell-dblclick="add" :auto-resize="$store.state.autoResize"
+				:radio-config="{ highlight: true, trigger: 'row' }"
+				:expand-config="{ lazy: true, loadMethod: loadContentMethod }">
+				<vxe-column type="expand" width="40">
+					<template #content="{ row }">
+						<vxe-grid :columns="row.childCols" :data="row.childData" :auto-resize="$store.state.autoResize"
+							highlight-current-row highlight-hover-row></vxe-grid>
+					</template>
+				</vxe-column>
+				<vxe-column type="radio" width="60" align="center"></vxe-column>
+				<vxe-column field="soNo" title="销售订单" width="120px" align="center"></vxe-column>
+				<vxe-column field="soSeq" title="行号" width="60px" align="center"></vxe-column>
+				<vxe-column field="series" title="系列" width="150px"></vxe-column>
+				<vxe-column field="invCode" title="成品编码" width="200px" :visible='false'></vxe-column>
+				<vxe-column field="invName" title="成品名称" width="250px"></vxe-column>
+				<vxe-column field="dueDate" title="评审日期" width="120px"></vxe-column>
+				<vxe-column field="packDate"
+					:edit-render="{ name: '$input', enabled: T.CheckPermissions('UpdateTime'), props: { type: 'date', placeholder: '请选择包装日期' } }"
+					title="包装时间" width="130px"></vxe-column>
+				<!-- <vxe-column field="packDate" title="包装日期"  width="120px"></vxe-column> -->
+				<vxe-column field="quantity" title="订单数量" width="100px"></vxe-column>
+				<vxe-column field="planQty" title="计划数量" width="100px"></vxe-column>
+				<vxe-column field="qualifyQty" title="入库数量" width="100px"></vxe-column>
+				<vxe-column field="unqualifyQty" title="未入库数" width="100px"></vxe-column>
+				<vxe-column field="salesman" title="业务员" width="100px"></vxe-column>
+
+			</vxe-table>
+		</el-main>
+		<el-footer>
+			<page ref="page_data" :totalCount="totalCount" @page_list="page_list" />
+		</el-footer>
+		<add ref='add' @page_list="page_list" width="1050px" title="生成包装计划" :FootBtn="false">
+			<div style="height: 500px;display: flex;">
+				<div style="flex: 2;">
+					<vxe-table :data="getDate.taskList" highlight-current-row highlight-hover-row height="auto"
+						border="full" ref="forms" show-footer-overflo
+						:checkbox-config="{ checkField: 'checked', trigger: 'cell', highlight: true }">
+						<vxe-column field="workcenterName" title="工作中心"></vxe-column>
+						<vxe-column field="produceDate" title="计划日期"></vxe-column>
+						<vxe-column field="quantity" title="计划数量" width="120px" align="center"></vxe-column>
+					</vxe-table>
+				</div>
+				<el-divider direction="vertical" style="height: 100%;"></el-divider>
+				<div style="flex: 3;">
+					<div style="height:50px ;">
+						<vxe-button icon="fa fa-plus" @click="BtnEvent('add')"></vxe-button>
+						<vxe-button icon="fa fa-minus" @click="BtnEvent('remove')"></vxe-button>
+						<vxe-button @click="addSubmit" status="primary">提交</vxe-button>
+						<vxe-button>剩余可计划数量{{ getDate.quantity }}</vxe-button>
+					</div>
+					<div style="height:calc(100% - 50px);">
+						<vxe-table :data="form" highlight-current-row highlight-hover-row height="auto" border="full"
+							ref="forms" show-footer-overflo
+							:checkbox-config="{ checkField: 'checked', trigger: 'cell', highlight: true }">
+							<vxe-column type="checkbox" width="50" align="center"></vxe-column>
+							<vxe-column field="workNo" title="工作中心" width="210px">
+								<template #default="{ row, rowIndex }">
+									<el-cascader size="small" v-model="form[rowIndex].workcenterId"
+										:options="getDate.workcenterList"
+										:props="{ expandTrigger: 'hover', label: 'name', value: 'id', emitPath: false }">
+									</el-cascader>
+								</template>
+							</vxe-column>
+							<vxe-column field="date" title="计划日期" width="130px">
+								<template #default="{ row, rowIndex }">
+									<vxe-input v-model="form[rowIndex].date" placeholder="加工日期" type="date"
+										class="data"></vxe-input>
+								</template>
+							</vxe-column>
+							<vxe-column field="quantity" title="计划数量" width="110px" align="center">
+								<template #default="{ row, rowIndex }">
+									<vxe-input v-model="form[rowIndex].quantity" placeholder="数量" type="number"
+										class="data" min="0"></vxe-input>
+								</template>
+							</vxe-column>
+						</vxe-table>
+					</div>
+				</div>
+			</div>
+		</add>
+		<!--   <edit  ref='edit' @page_list="page_list" /> -->
+	</el-container>
+
+</template>
+<script>
+import page from "@/components/page/page.vue";
+import add from "@/components/TitleSearch/TitleSearch.vue";
+//import add from "./add.vue";
+//import edit from "./edit.vue";
+export default {
+	name: "PackPlan",
+	components: {
+		page,
+		add,
+		// add,
+		// edit,
+	},
+	data() {
+		return {
+			search: {},
+			totalCount: 0,
+			tableData: [],
+			select_id: "",
+			auto: true,
+			form: [{}],
+			getDate: [],
+			id: '',
+		};
+	},
+	created() {
+		this.$nextTick(() => { this.$refs.PackPlan.connect(this.$refs.PackPlanToolbar) })
+	},
+	mounted() {
+		console.log(this.T.CheckPermissions('UpdateTime'))
+		this.page_list();
+	},
+	methods: {
+		page_list: function () {
+			let pagesize = this.$refs.page_data.page_size;
+			let page = this.$refs.page_data.page;
+			this.api.production.PackPlan.GetList(pagesize, page, this.search).then(res => {
+				if (res.data.code == 200) {
+					this.tableData = res.data.data.rows;
+					this.totalCount = parseInt(res.data.data.totalCount);
+				} else {
+					this.$message.error(res.data.message)
+				}
+
+			});
+		},
+		editClosedEvent: function ({ row, column }) {
+			try {
+				if (this.$store.state.buttons[this.$store.state.tabsMenu_index].indexOf("UpdateTime") == -1) { this.$message.error("您无权修改包装时间"); return false }
+			} catch (err) { console.log(err) }
+
+			const $table = this.$refs.PackPlan
+			const field = column.property
+			let data = { 'id': row.id, 'packDate': row.packDate }
+			this.api.production.PackPlan.UpdatePackDate(data).then(res => {
+				if (res.data.code == 200) {
+					const cellValue = row[field]
+					this.$message.success("保存成功")
+				} else {
+					this.$message.error(res.data.message)
+				}
+			})
+			// 判断单元格值是否被修改
+			if ($table.isUpdateByRow(row, field)) {
+				setTimeout(() => {
+					// 局部更新单元格为已保存状态
+					$table.reloadRow(row, null, field)
+				}, 300)
+			}
+		},
+		add: function () {
+			let data = this.$refs.PackPlan.getRadioRecord();
+			if (!data) { this.$message.error('请选择一条数据'); return false; }
+			this.$refs.add.SelectShow = true;
+			this.form = [{}];
+			this.api.production.PackPlan.GetAddInfo(data.id).then(res => {
+				if (res.data.code == 200) {
+					this.id = data.id;
+					this.getDate = res.data.data
+				} else {
+					this.$message.error(res.data.message)
+				}
+			})
+		},
+		BtnEvent: function (option) {
+			let iform = this.form.slice()
+			if (option == 'add') {
+				iform.push({});
+				this.form = iform;
+			}
+			else if (option == 'remove') {
+				let arr = []
+				iform.forEach((item, index) => {
+					if (item.checked != true) { arr.push(item) };
+				})
+				this.form = arr;
+			}
+		},
+		addSubmit: function () {
+			let data = {
+				'id': this.id,
+				data: this.form
+			}
+			this.api.production.PackPlan.Add(data).then(res => {
+				if (res.data.code == 200) {
+					this.page_list();
+					this.$refs.add.SelectShow = false;
+					this.$message.success(res.data.message);
+				} else {
+					this.$message.error(res.data.message);
+				}
+			})
+		},
+		loadContentMethod({ row }) {
+			let _this = this;
+			return new Promise(function (resolve, reject) {
+				setTimeout(function () {
+					_this.api.production.PackPlan.GetAddInfo(row.id).then(res => {
+						if (res.data.code == 200) {
+							row.childCols = [
+								{ field: "produceDate", title: "计划日期", width: "180px", align: "center" },
+								{ field: "workcenterName", title: "工作中心", width: "230px" },
+								{ field: "quantity", title: "计划数量", width: "150px" },
+								{ field: "qty", title: "入库数量", width: "150px" },
+							];
+							row.childData = res.data.data.taskList;
+						} else {
+							_this.$message.error(res.data.message);
+						}
+						resolve();
+					});
+				});
+			});
+		}
+	}
+};
+</script>
+<style lang="less" scoped="scoped">
+.el-main {
+	padding: 0 20px 20px 20px;
+}
+</style>

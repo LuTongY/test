@@ -1,0 +1,50 @@
+import store from '../store'
+const T = {
+ 	//element ui table筛选数组过滤
+ 	el_table_filters(array, name) {
+		if(!array) return false;
+ 		let arr = [];
+ 		try {
+ 			array.forEach((item, index) => {
+ 				let obj = {}
+ 				if (arr.findIndex((v) => {
+ 						return v.text == item[name]
+ 					}) < 0) {
+					obj.label = item[name];
+ 					obj.text = item[name];
+ 					obj.value = item[name];
+ 					arr.push(obj)
+ 				}
+ 			})
+ 		} catch (err) {
+ 			console.log(err)
+ 		}
+ 		return arr
+ 	},
+ 	arrRemove(val) {
+ 		var index = this.findIndex((v) => {
+ 			return v == val
+ 		})
+ 		if (index > -1) {
+ 			this.splice(index, 1);
+ 		}
+ 	},
+ 	// 对后端传的数值进行格式化 浮点型
+ 	floatRow(value) {
+ 		if (!value) return 0;
+ 		return parseFloat(value)
+ 	},
+ 	// 对后端传的数值进行格式化 整数型
+ 	intRow(value) {
+ 		if (!value) return 0;
+ 		return parseInt(value)
+ 	},
+	//检验表格列权限
+	CheckPermissions(name){
+		if(!store.state.buttons.hasOwnProperty(store.state.tabsMenu_index)){return false}
+		return store.state.buttons[store.state.tabsMenu_index].indexOf(name) > -1?true:false
+	}
+	
+ }
+
+ export default T

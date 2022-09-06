@@ -1,0 +1,115 @@
+<template>
+	<MyDialog ref='dialog' title='打印派工单' width='850px'>
+	   <div class="IntendPrint_wapper">
+	   	<div class="IntendPrint_header" style="display: flex;">
+	   		<vxe-button @click="print(0)">打印</vxe-button>
+	   		<vxe-button @click="print(1)">预览</vxe-button>
+	   	</div>
+	   	<div class="IntendPrint_main" id="print" style="padding: 0 20px;">
+	   		<form id="form1">    
+	   		    	<table id="form2" border="1" width="90%" style="margin:20px auto;border-collapse:collapse; font-size:16px;">
+						<thead >
+									<tr style='height: 40px;font-size: 13px;'>
+									                 <th style='width:4em'>组别</th>
+								   	                 <th style='width:120px'>生产订单号</th>
+												     <th style='width:120px'>成品型号</th>
+													 <th style='width:7em'>成品数量(套)</th>
+													 <th style='width:100px'>部件编码</th>
+												     <th style='width:280px'>部件名称</th>
+												     <th style='width:80px'>工序名称</th>
+											         <th style='width:80px'>派工数量</th>
+						                         </tr>
+						</thead>
+	   		            <tbody>
+	   						<tr v-for="(item,index) in data">
+								<td>{{item.workcenterName}}</td>
+								<td>{{item.productNo}}</td>
+								<td>{{item.pInvName}}</td>
+								<td>{{item.orderQty}}</td>
+								<td>{{item.invCode}}</td>
+								<td>{{item.invName}}</td>
+								<td>{{item.processName}}</td>
+								<td>{{item.quantity}}</td>
+							</tr>
+	   		           </tbody>
+	   		            <tfoot>
+	   		            </tfoot>
+	   		        </table>
+	   		    </form>
+	   	</div>
+	   </div>
+	</MyDialog>
+</template>
+<script>
+	import { getLodop } from '@/components/js/LodopFuncs.js'
+	import print from "@/components/print/print.vue"
+	export default{
+		components:{
+			print,
+		},
+		props:{
+			date:{
+				default:'',
+			},
+			workcenterName:{
+				type:String,
+				default:'',
+			}
+		},
+		data(){
+			return{
+				data:'',
+			}
+		},
+		computed: {
+		
+		},
+		mounted() {
+		},
+		methods:{
+			isShow:function(){
+				this.$refs.dialog.isShow=true;
+			},
+			print(s) {
+				try{
+					this.CreateOneFormPage();
+					if(s==0){			
+						 LODOP.PRINT();
+						 this.$message.success("打印成功")
+						 this.$refs.dialog.isShow=false;
+						 this.$emit('page_list')
+					}
+					if(s==1){
+						 LODOP.PREVIEW();
+					}
+				}catch(err){
+					this.$message.error(err)
+				}
+				
+			},
+			CreateOneFormPage() {
+					LODOP.SET_PRINT_PAGESIZE(2, 0, 0,"A4");
+					// 打印内容
+					LODOP.ADD_PRINT_TABLE(75,10,"97%","80%",document.getElementById("form1").innerHTML);
+				   //标题   
+					LODOP.ADD_PRINT_HTM(30,"2.5%","95%",2000,"<caption style='position:relative'><div style='font-size:20px; width:500px;margin-bottom: 10px;''>【"+this.workcenterName+"生产排程】("+this.date+")</div></div></caption>");
+					LODOP.SET_PRINT_STYLEA(0,"ItemType",1);
+					LODOP.SET_PRINT_STYLEA(0,"LinkedItem",1);
+					//页码	   
+					LODOP.ADD_PRINT_HTM(585,"60%","95%",54,"<span style='font-size:12px'>页号: </span><span style='font-size:12px' tdata='pageNO'>第##页</span>/<span style='font-size:12px' tdata='pageCount'>共##页</span>");
+					LODOP.SET_PRINT_STYLEA(0,"ItemType",1);
+					LODOP.SET_PRINT_STYLEA(0,"LinkedItem",1);
+			},
+		},
+	}
+</script>
+<style scoped>
+	.IntendPrint_wapper{
+		height: 100%;
+	}
+	.IntendPrint_main{
+		height: calc(100% - 70px);
+		overflow: auto;
+	}
+	
+</style>

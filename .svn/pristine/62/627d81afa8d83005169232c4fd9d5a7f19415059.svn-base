@@ -1,0 +1,173 @@
+<template>
+	<el-container class="statisticsMain">
+		<el-main>
+			<el-row :gutter="20" style="height:350px" class="PV">
+				<el-col :span="16">
+					<packaging />
+				</el-col>
+				<el-col :span="8">
+					<bar text="今日成品入库" :xAxis="barXAxis" :list="barList" autoShow />
+				</el-col>
+			</el-row>
+			<el-row :gutter="20" style="height:350px">
+				<el-col :span="6">
+					<pie text="制管车间[报工]" :list="data" autoShow />
+				</el-col>
+				<el-col :span="6">
+					<pie text="五金车间[报工]" :list="data1" autoShow />
+				</el-col>
+				<el-col :span="6">
+					<pie text="焊接电泳车间[报工]" :list="data2" autoShow />
+				</el-col>
+				<el-col :span="6">
+					<pie text="木板车间[报工]" :list="data3" autoShow />
+				</el-col>
+			</el-row>
+		</el-main>
+	</el-container>
+
+</template>
+<script>
+	import Charts from '@/views/index/Charts';
+	import storage from './storage';
+	import ranking from './ranking';
+	import packaging from './packaging';
+
+	import pie from '@/components/Echarts/pie/pie.vue';
+	import bar from '@/components/Echarts/bar/bar.vue';
+
+	import timeLine from '@/views/index/timeLine';
+	export default {
+		components: {
+			Charts,
+			timeLine,
+			storage,
+			ranking,
+			packaging,
+			pie,
+			bar,
+		},
+		data() {
+			return {
+				data: [{
+						value: 1048,
+						name: '上料'
+					},
+					{
+						value: 735,
+						name: '制管看机台'
+					},
+					{
+						value: 580,
+						name: '电裁'
+					},
+					{
+						value: 484,
+						name: '自动裁'
+					},
+					{
+						value: 300,
+						name: '改管'
+					}
+				],
+				data1: [{
+						value: 1048,
+						name: '两边打孔'
+					},
+					{
+						value: 1735,
+						name: '刷毛刺'
+					},
+					{
+						value: 1200,
+						name: '冲孔1'
+					},
+					{
+						value: 8000,
+						name: '冲孔2'
+					},
+					{
+						value: 6000,
+						name: '冲孔3'
+					},
+					{
+						value: 6000,
+						name: '塞螺母'
+					},
+					{
+						value: 6000,
+						name: '切角'
+					}
+				],
+				data2: [{
+						value: 1048,
+						name: '焊接'
+					},
+					{
+						value: 735,
+						name: '打磨'
+					},
+					{
+						value: 580,
+						name: '插管'
+					},
+					{
+						value: 484,
+						name: '收管'
+					},
+				],
+				data3: [{
+						value: 1048,
+						name: '开料'
+					},
+					{
+						value: 7350,
+						name: '封边+排孔'
+					},
+					{
+						value: 5800,
+						name: '检验+码垛'
+					},
+					{
+						value: 96120,
+						name: '贴号'
+					},
+				],
+				barXAxis: ['传统鞋架', '钢木鞋架', '其它家居', '备品', '钢木家具','衣帽架','布衣柜'],
+				barList: [1048, 56, 587, 599, 961,500,6000]
+			}
+		},
+		mounted() {
+			// this.api.index.GetList()
+		},
+	}
+</script>
+<style lang="less" scoped="scoped">
+	.statisticsMain {
+		background: #F5F7F8;
+	}
+
+	.el-row {
+		overflow: hidden;
+		background: #F5F7F8;
+		margin-bottom: 25px;
+		background: #fff;
+	}
+
+	.el-col {
+		max-height: 350px;
+		overflow: hidden;
+		background: #F5F7F8;
+		border-radius: 6px;
+	}
+
+	// .statisticsMain /deep/.grid-content{
+	// 	height: 250px;
+	// 	max-height: 250px;
+	// 	background: #fff;
+	// 	border: 1px solid #ebeef5;
+	// }
+	.PV {
+		background: #fff;
+	}
+</style>

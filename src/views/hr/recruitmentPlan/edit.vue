@@ -1,0 +1,115 @@
+<template>
+  <div v-dialogdrag>
+    <el-dialog title="编辑招聘计划" v-model="is_show" width="500px">
+      <el-form :model="Form" :rules="rules" ref="Form" label-width="120px" class="demo-ruleForm">
+        <el-form-item label="招聘人员" prop="recruiterId">
+          <el-select v-model="Form.recruiterId" filterable placeholder="请选择">
+            <el-option v-for="(item, index) in options.recruiterList" :key="index" :label="item" :value="index">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="部门/职位" prop="postId">
+          <el-cascader v-model="Form.postId" :options="options.postList" :props="props"></el-cascader>
+        </el-form-item>
+        <el-form-item label="职位类型" prop="postType">
+          <template v-for="(item, key) in options.postTypeList" :key="key">
+            <el-radio v-model="Form.postType" :label="key">{{ item }}</el-radio>
+          </template>
+        </el-form-item>
+        <el-form-item label="招聘日期" prop="date">
+          <el-date-picker v-model="Form.date" type="daterange" range-separator="至" start-placeholder="开始日期"
+            end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:250px;">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="需求数量" prop="demandQty">
+          <el-input type="number" v-model.trim="Form.demandQty"></el-input>
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <vxe-textarea class="txtarea-item" v-model.trim="Form.remark" resize="vertical"></vxe-textarea>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="submitForm('Form')">确认</el-button>
+          <el-button @click="is_show = false">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+<script>
+export default {
+  components: {},
+  data() {
+    return {
+      is_show: false,
+      options: {},
+      props: {
+        expandTrigger: "hover",
+        value: "id",
+        label: "name",
+        emitPath: false
+      },
+      Form: {
+        recruiterId: '',
+        postId: '',
+        postType: '',
+        date: [],
+        demandQty: '',
+        remark: ''
+      },
+      id: 0,
+      rules: {
+        recruiterId: [{ required: true, message: "请选择招聘人员", trigger: "select" }],
+        postId: [{ required: true, message: "请选择部门/职位", trigger: "select" }],
+        postType: [{ required: true, message: "请选择职位类型", trigger: "select" }],
+        date: [{
+          required: true, trigger: "blur", validator: (rule, value, callback) => {
+            if (!value || value.length <= 0) {
+              callback(new Error("请选择计划时间"));
+            } else {
+              callback();
+            }
+          }
+        }],
+        demandQty: [{
+          required: true, trigger: "blur", validator: (rule, value, callback) => {
+            if (!/^\d+$/.test(value) || value <= 0) {
+              callback(new Error("请填写需求数量"));
+            } else {
+              callback();
+            }
+          }
+        }],
+      }
+    };
+  },
+  mounted() { },
+  methods: {
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.Form.id = this.id
+          this.api.hr.RecruitmentPlan.edit(this.Form).then(
+            res => {
+              if (res.data.code == 200) {
+                this.is_show = !this.is_show;
+                this.$message.success("添加成功");
+                this.$emit("page_list");
+              } else {
+                this.$message.error(res.data.data.errors.name);
+              }
+            }
+          );
+        } else {
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    }
+  }
+};
+</script>
+<style leng="less" scoped>
+/deep/ .el-input__inner {
+  width: 217px;
+}
+</style>
