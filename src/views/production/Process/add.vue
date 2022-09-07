@@ -2,8 +2,11 @@
 <div  v-dialogdrag id='add'>
 	<el-dialog title="增加工序"  v-model="is_show"  width="450px">
 	<el-form :model="roleForm" :rules="rules" ref="roleForm" label-width="100px" class="demo-ruleForm">
-			 <el-form-item label="工序名称" prop="name" >
+			    <el-form-item label="工序名称" prop="name" >
 			     <el-input v-model="roleForm.name"  size="small"></el-input>
+			   </el-form-item>
+			   <el-form-item label="工序号" prop="code" >
+			     <el-input v-model="roleForm.code"  size="small"></el-input>
 			   </el-form-item>
                <el-form-item label="是否派工" >
                    <el-radio-group v-model="roleForm.isAssign">
@@ -77,6 +80,7 @@
 				id:0,
 				rules:{
 					name: [{ required: true, message: '请输入内容', trigger: 'blur' },],
+					code: [{ required: true, message: '请输入内容', trigger: 'blur' },],
 				}
 				
 			}
